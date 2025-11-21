@@ -3,8 +3,8 @@ import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-d
 import { Layout } from './components/Layout';
 import { MenuEntry, AdviceEntry } from './types';
 import * as storage from './services/storage';
-import { motion } from 'framer-motion';
-import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup, Lock, Unlock } from 'lucide-react';
 
 // --- Shared Components ---
 
@@ -127,6 +127,11 @@ const HomePage = () => {
 const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
   const isMenu = type === 'menu';
   
+  // Auth state for Advice
+  const [isLocked, setIsLocked] = useState(type === 'advice');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [authError, setAuthError] = useState(false);
+
   // State for Menu Inputs
   const [menuData, setMenuData] = useState({
     dish1: '', price1: '',
@@ -136,8 +141,29 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
 
   // State for Advice Input
   const [adviceContent, setAdviceContent] = useState('');
-  
   const [isSaved, setIsSaved] = useState(false);
+
+  // Reset lock state when switching types
+  useEffect(() => {
+    if (type === 'advice') {
+      setIsLocked(true);
+      setPasswordInput('');
+      setAuthError(false);
+    } else {
+      setIsLocked(false);
+    }
+  }, [type]);
+
+  const handleUnlock = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordInput === 'millofdastevehood') {
+      setIsLocked(false);
+      setAuthError(false);
+    } else {
+      setAuthError(true);
+      // Shake animation trigger logic could go here
+    }
+  };
 
   const handleMenuChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -148,7 +174,6 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
     e.preventDefault();
     
     if (isMenu) {
-      // Construct the formatted menu string
       const formattedMenu = `🍽️ Gerecht 1
 ${menuData.dish1}
 Prijs: € ${menuData.price1}
@@ -168,16 +193,49 @@ Prijs: € ${menuData.priceSoup}`;
 
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2000);
-    
-    // Optional: Clear form or keep it. Keeping it allows for quick edits if mistake made.
-    // If we wanted to clear:
-    // if (isMenu) setMenuData({ dish1: '', price1: '', dish2: '', price2: '', soup: '', priceSoup: '' });
-    // else setAdviceContent('');
   };
+
+  if (isLocked && !isMenu) {
+    return (
+      <PageTransition>
+        <div className="max-w-md mx-auto mt-20">
+          <Card title="Beveiligde Toegang" icon={Lock}>
+            <div className="text-center mb-6 text-stone-600">
+              <p>Deze pagina is alleen toegankelijk voor Cyriel.</p>
+            </div>
+            <form onSubmit={handleUnlock} className="space-y-4">
+              <div>
+                <input
+                  type="password"
+                  value={passwordInput}
+                  onChange={(e) => {
+                    setPasswordInput(e.target.value);
+                    setAuthError(false);
+                  }}
+                  placeholder="Voer wachtwoord in..."
+                  className={`w-full p-3 rounded-lg border ${authError ? 'border-red-300 bg-red-50 text-red-900' : 'border-stone-200 focus:border-orange-500'} outline-none transition-all`}
+                  autoFocus
+                />
+                {authError && (
+                  <p className="text-red-500 text-sm mt-2 animate-pulse">Wachtwoord onjuist. Probeer het opnieuw.</p>
+                )}
+              </div>
+              <button
+                type="submit"
+                className="w-full py-3 bg-stone-800 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors flex justify-center items-center gap-2"
+              >
+                <Unlock size={18} />
+                Ontgrendelen
+              </button>
+            </form>
+          </Card>
+        </div>
+      </PageTransition>
+    );
+  }
 
   const title = isMenu ? "Voer Prins Heerlijk Menu In" : "Voer Cyriel's Advies In";
   const Icon = isMenu ? Utensils : Coffee;
-
   const isMenuValid = menuData.dish1 && menuData.price1 && menuData.dish2 && menuData.price2 && menuData.soup && menuData.priceSoup;
   const isAdviceValid = adviceContent.trim().length > 0;
   const isValid = isMenu ? isMenuValid : isAdviceValid;
