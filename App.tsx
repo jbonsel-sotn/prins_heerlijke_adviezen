@@ -21,11 +21,13 @@ const PageTransition = ({ children }: { children: React.ReactNode }) => (
 
 const Card = ({ title, children, icon: Icon, className = "" }: { title: string; children: React.ReactNode; icon?: any; className?: string }) => (
   <div className={`bg-white rounded-2xl shadow-xl border border-orange-50 overflow-hidden ${className}`}>
-    <div className="bg-orange-50/50 p-6 border-b border-orange-100 flex items-center gap-3">
-      {Icon && <Icon className="text-orange-500" size={24} />}
-      <h2 className="text-2xl font-serif font-bold text-stone-800">{title}</h2>
+    <div className="bg-orange-50/50 p-5 md:p-6 border-b border-orange-100 flex flex-col md:flex-row md:items-center gap-3">
+      <div className="flex items-center gap-3">
+        {Icon && <Icon className="text-orange-500 shrink-0" size={24} />}
+        <h2 className="text-xl md:text-2xl font-serif font-bold text-stone-800 leading-tight">{title}</h2>
+      </div>
     </div>
-    <div className="p-6">
+    <div className="p-5 md:p-6">
       {children}
     </div>
   </div>
@@ -51,16 +53,18 @@ const HomePage = () => {
 
   return (
     <PageTransition>
-      <div className="space-y-12">
-        <div className="text-center py-8">
+      <div className="space-y-8 md:space-y-12">
+        <div className="text-center py-4 md:py-8">
            <motion.div 
              initial={{ scale: 0.9, opacity: 0 }}
              animate={{ scale: 1, opacity: 1 }}
              transition={{ duration: 0.8 }}
-             className="inline-block"
+             className="inline-block px-2"
            >
-             <h1 className="text-4xl md:text-6xl font-serif text-stone-800 mb-4 font-bold">Welkom bij <span className="text-orange-600">Prins Heerlijke Adviezen</span></h1>
-             <p className="text-lg text-stone-600 italic">Uw dagelijkse bron van culinaire inspiratie en wijs advies</p>
+             <h1 className="text-3xl md:text-6xl font-serif text-stone-800 mb-2 md:mb-4 font-bold leading-tight">
+               Welkom bij <span className="text-orange-600 block md:inline">Prins Heerlijke Adviezen</span>
+             </h1>
+             <p className="text-base md:text-lg text-stone-600 italic">Uw dagelijkse bron van culinaire inspiratie en wijs advies</p>
            </motion.div>
         </div>
 
@@ -73,19 +77,19 @@ const HomePage = () => {
              <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-orange-100 rounded-full opacity-20 blur-3xl pointer-events-none"></div>
              
              {menu && menu.formattedDate === today ? (
-               <div className="prose prose-stone max-w-none text-lg">
+               <div className="prose prose-stone max-w-none text-base md:text-lg">
                  <div className="whitespace-pre-wrap leading-relaxed text-stone-700 font-medium">
                    {menu.items}
                  </div>
-                 <div className="mt-6 flex items-center gap-2 text-sm text-stone-400">
+                 <div className="mt-6 flex items-center gap-2 text-xs md:text-sm text-stone-400">
                     <Clock size={14} />
                     <span>Geüpdatet om {new Date(menu.timestamp).toLocaleTimeString('nl-NL', {hour: '2-digit', minute:'2-digit'})}</span>
                  </div>
                </div>
              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-stone-400">
+                <div className="flex flex-col items-center justify-center py-12 text-stone-400 text-center">
                   <Utensils size={48} className="mb-4 opacity-20" />
-                  <p className="text-lg font-serif italic">Het menu voor vandaag is nog niet ingevoerd.</p>
+                  <p className="text-lg font-serif italic mb-1">Het menu voor vandaag is nog niet ingevoerd.</p>
                   <p className="text-sm">Kom later terug voor smakelijke updates!</p>
                 </div>
              )}
@@ -100,7 +104,7 @@ const HomePage = () => {
              {advice ? (
                <div className="relative">
                  <div className="text-6xl absolute -top-4 -left-2 text-orange-200 font-serif opacity-50">"</div>
-                 <p className="whitespace-pre-wrap text-xl text-stone-700 italic pl-8 pr-4 relative z-10 font-serif leading-loose">
+                 <p className="whitespace-pre-wrap text-lg md:text-xl text-stone-700 italic pl-6 md:pl-8 pr-2 relative z-10 font-serif leading-loose">
                    {advice.advice}
                  </p>
                  <div className="mt-8 flex justify-end items-center gap-2">
@@ -108,11 +112,11 @@ const HomePage = () => {
                       <p className="font-bold text-stone-800 text-sm">- Cyriel</p>
                       <p className="text-xs text-stone-400">{new Date(advice.timestamp).toLocaleDateString('nl-NL')}</p>
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-orange-200 flex items-center justify-center text-orange-700 font-bold font-serif">C</div>
+                    <div className="w-10 h-10 rounded-full bg-orange-200 flex items-center justify-center text-orange-700 font-bold font-serif shrink-0">C</div>
                  </div>
                </div>
              ) : (
-               <div className="flex flex-col items-center justify-center py-12 text-stone-400">
+               <div className="flex flex-col items-center justify-center py-12 text-stone-400 text-center">
                   <Coffee size={48} className="mb-4 opacity-20" />
                   <p className="text-lg font-serif italic">Cyriel is nog aan het broeden op zijn advies.</p>
                </div>
@@ -198,7 +202,7 @@ Prijs: € ${menuData.priceSoup}`;
   if (isLocked && !isMenu) {
     return (
       <PageTransition>
-        <div className="max-w-md mx-auto mt-20">
+        <div className="max-w-md mx-auto mt-10 md:mt-20">
           <Card title="Beveiligde Toegang" icon={Lock}>
             <div className="text-center mb-6 text-stone-600">
               <p>Deze pagina is alleen toegankelijk voor Cyriel.</p>
@@ -222,7 +226,7 @@ Prijs: € ${menuData.priceSoup}`;
               </div>
               <button
                 type="submit"
-                className="w-full py-3 bg-stone-800 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors flex justify-center items-center gap-2"
+                className="w-full py-3 bg-stone-800 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors flex justify-center items-center gap-2 active:scale-95"
               >
                 <Unlock size={18} />
                 Ontgrendelen
@@ -244,10 +248,10 @@ Prijs: € ${menuData.priceSoup}`;
     <PageTransition>
       <div className="max-w-3xl mx-auto">
         <Card title={title} icon={Icon}>
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
             
             {isMenu ? (
-              <div className="space-y-6">
+              <div className="space-y-4 md:space-y-6">
                  {/* Dish 1 */}
                  <div className="bg-stone-50 p-4 rounded-xl border border-stone-100">
                     <div className="flex items-center gap-2 mb-3 text-orange-700 font-serif font-bold">
@@ -262,8 +266,8 @@ Prijs: € ${menuData.priceSoup}`;
                           name="dish1"
                           value={menuData.dish1}
                           onChange={handleMenuChange}
-                          placeholder="Bijv. Ambachtelijke kroket met brood"
-                          className="w-full p-3 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
+                          placeholder="Bijv. Ambachtelijke kroket"
+                          className="w-full p-3 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm md:text-base"
                         />
                       </div>
                       <div>
@@ -278,7 +282,7 @@ Prijs: € ${menuData.priceSoup}`;
                             value={menuData.price1}
                             onChange={handleMenuChange}
                             placeholder="0,00"
-                            className="w-full p-3 pl-10 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
+                            className="w-full p-3 pl-10 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm md:text-base"
                           />
                         </div>
                       </div>
@@ -299,8 +303,8 @@ Prijs: € ${menuData.priceSoup}`;
                           name="dish2"
                           value={menuData.dish2}
                           onChange={handleMenuChange}
-                          placeholder="Bijv. Broodje Gezond Deluxe"
-                          className="w-full p-3 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
+                          placeholder="Bijv. Broodje Gezond"
+                          className="w-full p-3 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm md:text-base"
                         />
                       </div>
                       <div>
@@ -315,7 +319,7 @@ Prijs: € ${menuData.priceSoup}`;
                             value={menuData.price2}
                             onChange={handleMenuChange}
                             placeholder="0,00"
-                            className="w-full p-3 pl-10 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
+                            className="w-full p-3 pl-10 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm md:text-base"
                           />
                         </div>
                       </div>
@@ -337,7 +341,7 @@ Prijs: € ${menuData.priceSoup}`;
                           value={menuData.soup}
                           onChange={handleMenuChange}
                           placeholder="Bijv. Verse Pompoensoep"
-                          className="w-full p-3 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
+                          className="w-full p-3 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm md:text-base"
                         />
                       </div>
                       <div>
@@ -352,7 +356,7 @@ Prijs: € ${menuData.priceSoup}`;
                             value={menuData.priceSoup}
                             onChange={handleMenuChange}
                             placeholder="0,00"
-                            className="w-full p-3 pl-10 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
+                            className="w-full p-3 pl-10 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm md:text-base"
                           />
                         </div>
                       </div>
@@ -376,7 +380,7 @@ Prijs: € ${menuData.priceSoup}`;
               <button
                 type="submit"
                 disabled={!isValid}
-                className="group relative flex items-center gap-2 px-8 py-3 bg-stone-800 text-white rounded-full font-semibold shadow-lg hover:bg-orange-600 hover:shadow-orange-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+                className="group relative w-full md:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-stone-800 text-white rounded-full font-semibold shadow-lg hover:bg-orange-600 hover:shadow-orange-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden active:scale-95"
               >
                 <span className="relative z-10 flex items-center gap-2">
                    {isSaved ? "Opgeslagen!" : "Publiceren"} 
@@ -408,11 +412,11 @@ const HistoryPage = ({ type }: { type: 'menu' | 'advice' }) => {
   return (
     <PageTransition>
       <div className="space-y-8">
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center gap-4 mb-6 md:mb-8">
           <div className="p-3 bg-white rounded-full shadow-md text-orange-600">
-            <History size={32} />
+            <History size={24} className="md:w-8 md:h-8" />
           </div>
-          <h1 className="text-3xl font-serif font-bold text-stone-800">{title}</h1>
+          <h1 className="text-2xl md:text-3xl font-serif font-bold text-stone-800 leading-tight">{title}</h1>
         </div>
 
         {items.length === 0 ? (
@@ -429,22 +433,22 @@ const HistoryPage = ({ type }: { type: 'menu' | 'advice' }) => {
                 transition={{ delay: index * 0.1 }}
                 className="group"
               >
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-stone-100 hover:shadow-md hover:border-orange-200 transition-all cursor-default">
+                <div className="bg-white p-5 md:p-6 rounded-xl shadow-sm border border-stone-100 hover:shadow-md hover:border-orange-200 transition-all cursor-default">
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-3">
-                        <Calendar size={16} className="text-orange-500" />
-                        <h3 className="text-xl font-bold font-serif text-stone-800 capitalize">
+                        <Calendar size={16} className="text-orange-500 shrink-0" />
+                        <h3 className="text-lg md:text-xl font-bold font-serif text-stone-800 capitalize">
                           {item.formattedDate}
                         </h3>
                       </div>
-                      <div className="pl-6 border-l-2 border-orange-100 group-hover:border-orange-300 transition-colors">
-                        <div className="text-stone-600 whitespace-pre-wrap">
+                      <div className="pl-4 md:pl-6 border-l-2 border-orange-100 group-hover:border-orange-300 transition-colors">
+                        <div className="text-stone-600 whitespace-pre-wrap text-sm md:text-base">
                           {type === 'menu' ? item.items : item.advice}
                         </div>
                       </div>
                     </div>
-                    <div className="text-xs font-mono text-stone-400 bg-stone-50 px-2 py-1 rounded self-start">
+                    <div className="text-xs font-mono text-stone-400 bg-stone-50 px-2 py-1 rounded self-start md:self-start">
                       {new Date(item.timestamp).toLocaleTimeString('nl-NL', {hour: '2-digit', minute:'2-digit'})}
                     </div>
                   </div>
