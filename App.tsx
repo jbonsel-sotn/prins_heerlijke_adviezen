@@ -3,17 +3,30 @@ import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-d
 import { Layout } from './components/Layout';
 import { MenuEntry, AdviceEntry } from './types';
 import * as storage from './services/storage';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup, Lock, Unlock, Loader2, CheckCircle2 } from 'lucide-react';
 
 // --- Shared Components ---
 
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
   <motion.div
-    initial={{ opacity: 0, y: 20 }}
+    initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    transition={{ duration: 0.4, ease: "easeOut" }}
+    exit={{ opacity: 0, y: -10 }}
+    transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }} // Slower, smoother page transition
+  >
+    {children}
+  </motion.div>
+);
+
+// New Component: Triggers animation when element enters viewport
+const ScrollReveal = ({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 60, scale: 0.96 }} // Start slightly lower and smaller
+    whileInView={{ opacity: 1, y: 0, scale: 1 }}
+    viewport={{ once: true, margin: "-50px" }} // Triggers slightly before bottom
+    transition={{ duration: 1.5, delay, ease: [0.16, 1, 0.3, 1] }} // Ultra slow and smooth easing
+    className={className}
   >
     {children}
   </motion.div>
@@ -76,36 +89,33 @@ const HomePage = () => {
 
   return (
     <PageTransition>
-      <div className="space-y-8 md:space-y-12">
-        <div className="text-center py-4 md:py-8">
+      <div className="space-y-8 md:space-y-12 pb-12">
+        <div className="text-center py-8 md:py-12">
            <motion.div 
-             initial={{ scale: 0.9, opacity: 0 }}
-             animate={{ scale: 1, opacity: 1 }}
-             transition={{ duration: 0.8 }}
+             initial={{ scale: 0.9, opacity: 0, y: 30 }}
+             animate={{ scale: 1, opacity: 1, y: 0 }}
+             transition={{ duration: 1.8, ease: [0.16, 1, 0.3, 1] }} // Very slow entry for title
              className="inline-block px-2"
            >
-             <h1 className="text-3xl md:text-6xl font-serif text-stone-800 mb-2 md:mb-4 font-bold leading-tight">
-               Welkom bij <span className="text-orange-600 block md:inline">Prins Heerlijke Adviezen</span>
+             <h1 className="text-4xl md:text-7xl font-serif text-stone-800 mb-4 font-bold leading-tight tracking-tight">
+               Welkom bij <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-600 block md:inline">Prins Heerlijke Adviezen</span>
              </h1>
-             <p className="text-base md:text-lg text-stone-600 italic">Uw dagelijkse bron van culinaire inspiratie en wijs advies</p>
+             <p className="text-base md:text-xl text-stone-600 italic max-w-2xl mx-auto">Uw dagelijkse bron van culinaire inspiratie en wijs advies</p>
            </motion.div>
         </div>
 
-        <motion.div 
-          whileHover={{ y: -5 }}
-          transition={{ type: "spring", stiffness: 300 }}
-        >
-          <Card title={`Prins Heerlijk Menu van ${menu ? menu.formattedDate : today}`} icon={Utensils} className="relative overflow-hidden">
-             <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-orange-100 rounded-full opacity-20 blur-3xl pointer-events-none"></div>
+        <ScrollReveal delay={0.2}>
+          <Card title={`Prins Heerlijk Menu van ${menu ? menu.formattedDate : today}`} icon={Utensils} className="relative overflow-hidden transition-shadow hover:shadow-2xl duration-700">
+             <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-orange-100 rounded-full opacity-20 blur-3xl pointer-events-none animate-pulse"></div>
              
              {loading ? (
                <LoadingSpinner />
              ) : menu && menu.formattedDate === today ? (
-               <div className="prose prose-stone max-w-none text-base md:text-lg">
+               <div className="prose prose-stone max-w-none text-base md:text-lg relative z-10">
                  <div className="whitespace-pre-wrap leading-relaxed text-stone-700 font-medium">
                    {menu.items}
                  </div>
-                 <div className="mt-6 flex items-center gap-2 text-xs md:text-sm text-stone-400">
+                 <div className="mt-6 flex items-center gap-2 text-xs md:text-sm text-stone-400 border-t border-orange-50 pt-4">
                     <Clock size={14} />
                     <span>Geüpdatet om {new Date(menu.timestamp).toLocaleTimeString('nl-NL', {hour: '2-digit', minute:'2-digit'})}</span>
                  </div>
@@ -118,27 +128,24 @@ const HomePage = () => {
                 </div>
              )}
           </Card>
-        </motion.div>
+        </ScrollReveal>
 
-        <motion.div 
-          whileHover={{ y: -5 }}
-          transition={{ type: "spring", stiffness: 300, delay: 0.1 }}
-        >
-          <Card title="Cyriel's Advies" icon={Sparkles} className="bg-gradient-to-br from-white to-amber-50/30">
+        <ScrollReveal delay={0.4}>
+          <Card title="Cyriel's Advies" icon={Sparkles} className="bg-gradient-to-br from-white to-amber-50/30 transition-shadow hover:shadow-2xl duration-700">
              {loading ? (
                <LoadingSpinner />
              ) : advice ? (
                <div className="relative">
-                 <div className="text-6xl absolute -top-4 -left-2 text-orange-200 font-serif opacity-50">"</div>
-                 <p className="whitespace-pre-wrap text-lg md:text-xl text-stone-700 italic pl-6 md:pl-8 pr-2 relative z-10 font-serif leading-loose">
+                 <div className="text-8xl absolute -top-6 -left-4 text-orange-200 font-serif opacity-40 select-none">"</div>
+                 <p className="whitespace-pre-wrap text-lg md:text-2xl text-stone-700 italic pl-8 md:pl-10 pr-4 relative z-10 font-serif leading-loose">
                    {advice.advice}
                  </p>
-                 <div className="mt-8 flex justify-end items-center gap-2">
+                 <div className="mt-8 flex justify-end items-center gap-3">
                     <div className="text-right">
-                      <p className="font-bold text-stone-800 text-sm">- Cyriel</p>
+                      <p className="font-bold text-stone-800 text-base">- Cyriel</p>
                       <p className="text-xs text-stone-400">{new Date(advice.timestamp).toLocaleDateString('nl-NL')}</p>
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-orange-200 flex items-center justify-center text-orange-700 font-bold font-serif shrink-0">C</div>
+                    <div className="w-12 h-12 rounded-full bg-orange-200 flex items-center justify-center text-orange-800 font-bold font-serif text-xl shrink-0 shadow-inner">C</div>
                  </div>
                </div>
              ) : (
@@ -148,7 +155,7 @@ const HomePage = () => {
                </div>
              )}
           </Card>
-        </motion.div>
+        </ScrollReveal>
       </div>
     </PageTransition>
   );
@@ -162,6 +169,7 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
   const [authError, setAuthError] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [isNewDay, setIsNewDay] = useState(false);
 
   const [menuData, setMenuData] = useState({
     dish1: '', price1: '',
@@ -185,6 +193,7 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
     setMenuData({ dish1: '', price1: '', dish2: '', price2: '', soup: '', priceSoup: '' });
     setAdviceContent('');
     setDataLoaded(false);
+    setIsNewDay(false);
   }, [type]);
 
   // Load existing data for today
@@ -193,16 +202,23 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
       if (isLocked) return; // Don't load if locked
 
       setIsLoadingData(true);
-      const todayStr = new Date().toISOString().split('T')[0];
+      // simple "local date check"
       
       try {
         if (isMenu) {
           const latestMenu = await storage.getLatestMenu();
-          // Only pre-fill if the menu is from today
-          if (latestMenu && latestMenu.dateStr === todayStr) {
+          
+          // Storage service now returns dateStr in YYYY-MM-DD based on NL time.
+          const todayNL = new Date().toLocaleString("en-US", {timeZone: "Europe/Amsterdam"});
+          const todayDate = new Date(todayNL);
+          const yyyy = todayDate.getFullYear();
+          const mm = String(todayDate.getMonth() + 1).padStart(2, '0');
+          const dd = String(todayDate.getDate()).padStart(2, '0');
+          const currentValDateStr = `${yyyy}-${mm}-${dd}`;
+
+          if (latestMenu && latestMenu.dateStr === currentValDateStr) {
             const lines = latestMenu.items.split('\n');
             
-            // Helper function to extract data from formatted string
             const findVal = (marker: string) => {
                const idx = lines.findIndex(l => l.includes(marker));
                return (idx !== -1 && lines[idx + 1]) ? lines[idx + 1].trim() : '';
@@ -226,13 +242,26 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
               priceSoup: findPrice('🥣 Soep')
             });
             setDataLoaded(true);
+            setIsNewDay(false);
+          } else {
+            setIsNewDay(true);
           }
         } else {
-          // For advice, usually just one field, but same logic applies
            const latestAdvice = await storage.getLatestAdvice();
-           if (latestAdvice && latestAdvice.dateStr === todayStr) {
+           
+           const todayNL = new Date().toLocaleString("en-US", {timeZone: "Europe/Amsterdam"});
+           const todayDate = new Date(todayNL);
+           const yyyy = todayDate.getFullYear();
+           const mm = String(todayDate.getMonth() + 1).padStart(2, '0');
+           const dd = String(todayDate.getDate()).padStart(2, '0');
+           const currentValDateStr = `${yyyy}-${mm}-${dd}`;
+
+           if (latestAdvice && latestAdvice.dateStr === currentValDateStr) {
              setAdviceContent(latestAdvice.advice);
              setDataLoaded(true);
+             setIsNewDay(false);
+           } else {
+             setIsNewDay(true);
            }
         }
       } catch (e) {
@@ -243,7 +272,7 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
     };
 
     loadCurrentData();
-  }, [isMenu, isLocked]); // Reload when type changes or unlock happens
+  }, [isMenu, isLocked]);
 
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
@@ -266,8 +295,6 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
     
     try {
       if (isMenu) {
-        // Construct the string, only adding sections if they have content (or if they are empty but we want to keep structure)
-        // We keep the structure consistent so parsing works next time.
         const formattedMenu = `🍽️ Gerecht 1
 ${menuData.dish1}
 Prijs: € ${menuData.price1}
@@ -287,6 +314,8 @@ Prijs: € ${menuData.priceSoup}`;
 
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2000);
+      setDataLoaded(true); // Now we have data for today
+      setIsNewDay(false);
     } catch (err) {
       alert("Er is iets fout gegaan bij het opslaan. Probeer het opnieuw.");
     } finally {
@@ -298,36 +327,41 @@ Prijs: € ${menuData.priceSoup}`;
     return (
       <PageTransition>
         <div className="max-w-md mx-auto mt-10 md:mt-20">
-          <Card title="Beveiligde Toegang" icon={Lock}>
-            <div className="text-center mb-6 text-stone-600">
-              <p>Deze pagina is alleen toegankelijk voor Cyriel.</p>
-            </div>
-            <form onSubmit={handleUnlock} className="space-y-4">
-              <div>
-                <input
-                  type="password"
-                  value={passwordInput}
-                  onChange={(e) => {
-                    setPasswordInput(e.target.value);
-                    setAuthError(false);
-                  }}
-                  placeholder="Voer wachtwoord in..."
-                  className={`w-full p-3 rounded-lg border ${authError ? 'border-red-300 bg-red-50 text-red-900' : 'border-stone-200 focus:border-orange-500'} outline-none transition-all`}
-                  autoFocus
-                />
-                {authError && (
-                  <p className="text-red-500 text-sm mt-2 animate-pulse">Wachtwoord onjuist. Probeer het opnieuw.</p>
-                )}
+          <ScrollReveal>
+            <Card title="Beveiligde Toegang" icon={Lock}>
+              <div className="text-center mb-6 text-stone-600">
+                <p>Deze pagina is alleen toegankelijk voor Cyriel.</p>
               </div>
-              <button
-                type="submit"
-                className="w-full py-3 bg-stone-800 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors flex justify-center items-center gap-2 active:scale-95"
-              >
-                <Unlock size={18} />
-                Ontgrendelen
-              </button>
-            </form>
-          </Card>
+              <form onSubmit={handleUnlock} className="space-y-4">
+                <motion.div 
+                   animate={authError ? { x: [-10, 10, -10, 10, 0] } : {}}
+                   transition={{ duration: 0.4 }}
+                >
+                  <input
+                    type="password"
+                    value={passwordInput}
+                    onChange={(e) => {
+                      setPasswordInput(e.target.value);
+                      setAuthError(false);
+                    }}
+                    placeholder="Voer wachtwoord in..."
+                    className={`w-full p-3 rounded-lg border ${authError ? 'border-red-300 bg-red-50 text-red-900' : 'border-stone-200 focus:border-orange-500'} outline-none transition-all`}
+                    autoFocus
+                  />
+                  {authError && (
+                    <p className="text-red-500 text-sm mt-2">Wachtwoord onjuist. Probeer het opnieuw.</p>
+                  )}
+                </motion.div>
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-stone-800 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors flex justify-center items-center gap-2 active:scale-95"
+                >
+                  <Unlock size={18} />
+                  Ontgrendelen
+                </button>
+              </form>
+            </Card>
+          </ScrollReveal>
         </div>
       </PageTransition>
     );
@@ -336,176 +370,203 @@ Prijs: € ${menuData.priceSoup}`;
   const title = isMenu ? "Voer Prins Heerlijk Menu In" : "Voer Cyriel's Advies In";
   const Icon = isMenu ? Utensils : Coffee;
   
-  // Validation logic loosened: Allow save if AT LEAST one character is in the fields (or if loading)
   const isMenuValid = (menuData.dish1 + menuData.price1 + menuData.dish2 + menuData.price2 + menuData.soup + menuData.priceSoup).length > 0;
   const isAdviceValid = adviceContent.trim().length > 0;
   const isValid = isMenu ? isMenuValid : isAdviceValid;
 
   return (
     <PageTransition>
-      <div className="max-w-3xl mx-auto">
-        <Card title={title} icon={Icon}>
-          {isLoadingData ? (
-             <div className="py-12 flex justify-center">
-               <Loader2 className="animate-spin text-orange-400" size={32} />
-             </div>
-          ) : (
-          <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
-            
-            {dataLoaded && (
-              <motion.div 
-                initial={{ opacity: 0, height: 0 }} 
-                animate={{ opacity: 1, height: 'auto' }}
-                className="bg-green-50 text-green-800 px-4 py-2 rounded-lg text-sm flex items-center gap-2 border border-green-100"
-              >
-                <CheckCircle2 size={16} />
-                <span>Gegevens van vandaag ingeladen. Je bewerkt nu het bestaande menu.</span>
-              </motion.div>
-            )}
-
-            {isMenu ? (
-              <div className="space-y-4 md:space-y-6">
-                 {/* Dish 1 */}
-                 <div className="bg-stone-50 p-4 rounded-xl border border-stone-100">
-                    <div className="flex items-center gap-2 mb-3 text-orange-700 font-serif font-bold">
-                      <Utensils size={18} />
-                      <h3>Gerecht 1</h3>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="md:col-span-2">
-                        <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">Omschrijving</label>
-                        <input
-                          type="text"
-                          name="dish1"
-                          value={menuData.dish1}
-                          onChange={handleMenuChange}
-                          placeholder="Bijv. Ambachtelijke kroket"
-                          className="w-full p-3 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm md:text-base"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">Prijs</label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Euro size={16} className="text-stone-400" />
-                          </div>
-                          <input
-                            type="text"
-                            name="price1"
-                            value={menuData.price1}
-                            onChange={handleMenuChange}
-                            placeholder="0,00"
-                            className="w-full p-3 pl-10 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm md:text-base"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                 </div>
-
-                 {/* Dish 2 */}
-                 <div className="bg-stone-50 p-4 rounded-xl border border-stone-100">
-                    <div className="flex items-center gap-2 mb-3 text-orange-700 font-serif font-bold">
-                      <Utensils size={18} />
-                      <h3>Gerecht 2</h3>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="md:col-span-2">
-                         <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">Omschrijving</label>
-                        <input
-                          type="text"
-                          name="dish2"
-                          value={menuData.dish2}
-                          onChange={handleMenuChange}
-                          placeholder="Bijv. Broodje Gezond"
-                          className="w-full p-3 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm md:text-base"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">Prijs</label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Euro size={16} className="text-stone-400" />
-                          </div>
-                          <input
-                            type="text"
-                            name="price2"
-                            value={menuData.price2}
-                            onChange={handleMenuChange}
-                            placeholder="0,00"
-                            className="w-full p-3 pl-10 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm md:text-base"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                 </div>
-
-                 {/* Soup */}
-                 <div className="bg-stone-50 p-4 rounded-xl border border-stone-100">
-                    <div className="flex items-center gap-2 mb-3 text-orange-700 font-serif font-bold">
-                      <Soup size={18} />
-                      <h3>Soep</h3>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="md:col-span-2">
-                        <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">Omschrijving</label>
-                        <input
-                          type="text"
-                          name="soup"
-                          value={menuData.soup}
-                          onChange={handleMenuChange}
-                          placeholder="Bijv. Verse Pompoensoep"
-                          className="w-full p-3 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm md:text-base"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">Prijs</label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Euro size={16} className="text-stone-400" />
-                          </div>
-                          <input
-                            type="text"
-                            name="priceSoup"
-                            value={menuData.priceSoup}
-                            onChange={handleMenuChange}
-                            placeholder="0,00"
-                            className="w-full p-3 pl-10 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm md:text-base"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                 </div>
-              </div>
+      <div className="max-w-3xl mx-auto pb-12">
+        <ScrollReveal>
+          <Card title={title} icon={Icon}>
+            {isLoadingData ? (
+               <div className="py-12 flex justify-center">
+                 <Loader2 className="animate-spin text-orange-400" size={32} />
+               </div>
             ) : (
-              <div className="relative">
-                <textarea
-                  value={adviceContent}
-                  onChange={(e) => setAdviceContent(e.target.value)}
-                  required
-                  rows={8}
-                  placeholder="Wat is het wijs advies van de dag?"
-                  className="w-full p-4 rounded-xl border border-stone-200 bg-stone-50 focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all outline-none resize-none font-medium text-stone-700 placeholder:text-stone-400"
-                />
-              </div>
-            )}
-
-            <div className="flex justify-end pt-4 border-t border-stone-100">
-              <button
-                type="submit"
-                disabled={!isValid || isSaving}
-                className="group relative w-full md:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-stone-800 text-white rounded-full font-semibold shadow-lg hover:bg-orange-600 hover:shadow-orange-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden active:scale-95"
-              >
-                <span className="relative z-10 flex items-center gap-2">
-                   {isSaving ? <Loader2 className="animate-spin" size={18}/> : isSaved ? "Opgeslagen!" : "Publiceren"} 
-                   {!isSaving && !isSaved && <Save size={18} className="group-hover:scale-110 transition-transform" />}
-                </span>
+            <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
+              
+              <AnimatePresence>
+                {isNewDay && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }} 
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="bg-blue-50 text-blue-800 px-4 py-3 rounded-lg text-sm flex items-center gap-3 border border-blue-100 shadow-sm"
+                  >
+                    <Sparkles size={18} className="shrink-0" />
+                    <div>
+                      <span className="font-bold">Nieuwe dag, nieuwe kansen!</span>
+                      <p className="text-xs opacity-80">Het formulier is leeggemaakt voor vandaag.</p>
+                    </div>
+                  </motion.div>
+                )}
                 
-                <div className={`absolute inset-0 bg-green-500 transition-transform duration-500 origin-left ${isSaved ? 'scale-x-100' : 'scale-x-0'}`} />
-              </button>
-            </div>
-          </form>
-          )}
-        </Card>
+                {dataLoaded && !isNewDay && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }} 
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="bg-green-50 text-green-800 px-4 py-2 rounded-lg text-sm flex items-center gap-2 border border-green-100"
+                  >
+                    <CheckCircle2 size={16} />
+                    <span>Gegevens van vandaag ingeladen. Je bewerkt nu het bestaande menu.</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {isMenu ? (
+                <div className="space-y-4 md:space-y-6">
+                   {/* Dish 1 */}
+                   <ScrollReveal delay={0.2}>
+                     <div className="bg-stone-50 p-4 rounded-xl border border-stone-100 hover:border-orange-200 transition-colors duration-300">
+                        <div className="flex items-center gap-2 mb-3 text-orange-700 font-serif font-bold">
+                          <Utensils size={18} />
+                          <h3>Gerecht 1</h3>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="md:col-span-2">
+                            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">Omschrijving</label>
+                            <input
+                              type="text"
+                              name="dish1"
+                              value={menuData.dish1}
+                              onChange={handleMenuChange}
+                              placeholder="Bijv. Ambachtelijke kroket"
+                              className="w-full p-3 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm md:text-base"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">Prijs</label>
+                            <div className="relative">
+                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Euro size={16} className="text-stone-400" />
+                              </div>
+                              <input
+                                type="text"
+                                name="price1"
+                                value={menuData.price1}
+                                onChange={handleMenuChange}
+                                placeholder="0,00"
+                                className="w-full p-3 pl-10 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm md:text-base"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                     </div>
+                   </ScrollReveal>
+
+                   {/* Dish 2 */}
+                   <ScrollReveal delay={0.4}>
+                     <div className="bg-stone-50 p-4 rounded-xl border border-stone-100 hover:border-orange-200 transition-colors duration-300">
+                        <div className="flex items-center gap-2 mb-3 text-orange-700 font-serif font-bold">
+                          <Utensils size={18} />
+                          <h3>Gerecht 2</h3>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="md:col-span-2">
+                             <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">Omschrijving</label>
+                            <input
+                              type="text"
+                              name="dish2"
+                              value={menuData.dish2}
+                              onChange={handleMenuChange}
+                              placeholder="Bijv. Broodje Gezond"
+                              className="w-full p-3 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm md:text-base"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">Prijs</label>
+                            <div className="relative">
+                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Euro size={16} className="text-stone-400" />
+                              </div>
+                              <input
+                                type="text"
+                                name="price2"
+                                value={menuData.price2}
+                                onChange={handleMenuChange}
+                                placeholder="0,00"
+                                className="w-full p-3 pl-10 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm md:text-base"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                     </div>
+                   </ScrollReveal>
+
+                   {/* Soup */}
+                   <ScrollReveal delay={0.6}>
+                     <div className="bg-stone-50 p-4 rounded-xl border border-stone-100 hover:border-orange-200 transition-colors duration-300">
+                        <div className="flex items-center gap-2 mb-3 text-orange-700 font-serif font-bold">
+                          <Soup size={18} />
+                          <h3>Soep</h3>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="md:col-span-2">
+                            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">Omschrijving</label>
+                            <input
+                              type="text"
+                              name="soup"
+                              value={menuData.soup}
+                              onChange={handleMenuChange}
+                              placeholder="Bijv. Verse Pompoensoep"
+                              className="w-full p-3 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm md:text-base"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">Prijs</label>
+                            <div className="relative">
+                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Euro size={16} className="text-stone-400" />
+                              </div>
+                              <input
+                                type="text"
+                                name="priceSoup"
+                                value={menuData.priceSoup}
+                                onChange={handleMenuChange}
+                                placeholder="0,00"
+                                className="w-full p-3 pl-10 rounded-lg border border-stone-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all text-sm md:text-base"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                     </div>
+                   </ScrollReveal>
+                </div>
+              ) : (
+                <ScrollReveal delay={0.2}>
+                  <div className="relative">
+                    <textarea
+                      value={adviceContent}
+                      onChange={(e) => setAdviceContent(e.target.value)}
+                      required
+                      rows={8}
+                      placeholder="Wat is het wijs advies van de dag?"
+                      className="w-full p-4 rounded-xl border border-stone-200 bg-stone-50 focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all outline-none resize-none font-medium text-stone-700 placeholder:text-stone-400"
+                    />
+                  </div>
+                </ScrollReveal>
+              )}
+
+              <div className="flex justify-end pt-4 border-t border-stone-100">
+                <button
+                  type="submit"
+                  disabled={!isValid || isSaving}
+                  className="group relative w-full md:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-stone-800 text-white rounded-full font-semibold shadow-lg hover:bg-orange-600 hover:shadow-orange-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden active:scale-95"
+                >
+                  <span className="relative z-10 flex items-center gap-2">
+                     {isSaving ? <Loader2 className="animate-spin" size={18}/> : isSaved ? "Opgeslagen!" : "Publiceren"} 
+                     {!isSaving && !isSaved && <Save size={18} className="group-hover:scale-110 transition-transform" />}
+                  </span>
+                  
+                  <div className={`absolute inset-0 bg-green-500 transition-transform duration-500 origin-left ${isSaved ? 'scale-x-100' : 'scale-x-0'}`} />
+                </button>
+              </div>
+            </form>
+            )}
+          </Card>
+        </ScrollReveal>
       </div>
     </PageTransition>
   );
@@ -539,32 +600,33 @@ const HistoryPage = ({ type }: { type: 'menu' | 'advice' }) => {
 
   return (
     <PageTransition>
-      <div className="space-y-8">
-        <div className="flex items-center gap-4 mb-6 md:mb-8">
+      <div className="space-y-8 pb-12">
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
+          className="flex items-center gap-4 mb-6 md:mb-8"
+        >
           <div className="p-3 bg-white rounded-full shadow-md text-orange-600">
             <History size={24} className="md:w-8 md:h-8" />
           </div>
           <h1 className="text-2xl md:text-3xl font-serif font-bold text-stone-800 leading-tight">{title}</h1>
-        </div>
+        </motion.div>
 
         {loading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="animate-spin text-orange-500" size={40} />
           </div>
         ) : items.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-stone-200">
-            <p className="text-stone-400 font-serif text-lg">Nog geen historie beschikbaar.</p>
-          </div>
+          <ScrollReveal>
+            <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-stone-200">
+              <p className="text-stone-400 font-serif text-lg">Nog geen historie beschikbaar.</p>
+            </div>
+          </ScrollReveal>
         ) : (
           <div className="grid gap-6">
             {items.map((item, index) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="group"
-              >
+              <ScrollReveal key={item.id} delay={index < 5 ? index * 0.15 : 0}>
                 <div className="bg-white p-5 md:p-6 rounded-xl shadow-sm border border-stone-100 hover:shadow-md hover:border-orange-200 transition-all cursor-default">
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                     <div className="flex-1">
@@ -585,7 +647,7 @@ const HistoryPage = ({ type }: { type: 'menu' | 'advice' }) => {
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </ScrollReveal>
             ))}
           </div>
         )}
