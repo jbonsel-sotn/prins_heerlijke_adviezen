@@ -14,4 +14,12 @@ export interface AdviceEntry {
   timestamp: number;
 }
 
-export type EntryType = 'menu' | 'advice';
+export interface BurritoEntry {
+  id: string;
+  dateStr: string;
+  formattedDate: string;
+  hasBurritos: boolean;
+  timestamp: number;
+}
+
+export type EntryType = 'menu' | 'advice' | 'burritos';

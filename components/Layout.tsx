@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Utensils, ChefHat, History, Home, Coffee, ChevronDown, PenTool, Menu, X } from 'lucide-react';
+import { Utensils, ChefHat, History, Home, Coffee, ChevronDown, PenTool, Menu, X, Sandwich } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Desktop Components ---
@@ -144,6 +144,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                 items={[
                   { label: "Prins Heerlijk Menu", to: "/input/menu", icon: Utensils },
                   { label: "Cyriel's Advies", to: "/input/advice", icon: Coffee },
+                  { label: "Burritos", to: "/input/burritos", icon: Sandwich },
                 ]}
               />
 
@@ -197,6 +198,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               <MobileSection title="Menu Invoeren">
                 <MobileNavLink to="/input/menu" icon={Utensils} onClick={() => setIsMobileMenuOpen(false)}>Prins Heerlijk Menu</MobileNavLink>
                 <MobileNavLink to="/input/advice" icon={Coffee} onClick={() => setIsMobileMenuOpen(false)}>Cyriel's Advies</MobileNavLink>
+                <MobileNavLink to="/input/burritos" icon={Sandwich} onClick={() => setIsMobileMenuOpen(false)}>Burritos</MobileNavLink>
               </MobileSection>
 
               <div className="w-full h-px bg-gradient-to-r from-transparent via-stone-200 to-transparent my-4" />

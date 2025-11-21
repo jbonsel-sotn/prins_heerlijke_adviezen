@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
-import { MenuEntry, AdviceEntry } from './types';
+import { MenuEntry, AdviceEntry, BurritoEntry } from './types';
 import * as storage from './services/storage';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup, Lock, Unlock, Loader2, CheckCircle2 } from 'lucide-react';
+import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup, Lock, Unlock, Loader2, CheckCircle2, Sandwich, PenTool } from 'lucide-react';
 
 // --- Shared Components ---
 
@@ -57,16 +57,19 @@ const LoadingSpinner = () => (
 const HomePage = () => {
   const [menu, setMenu] = useState<MenuEntry | null>(null);
   const [advice, setAdvice] = useState<AdviceEntry | null>(null);
+  const [burrito, setBurrito] = useState<BurritoEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const today = new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   const loadData = async () => {
-    const [latestMenu, latestAdvice] = await Promise.all([
+    const [latestMenu, latestAdvice, latestBurrito] = await Promise.all([
       storage.getLatestMenu(),
-      storage.getLatestAdvice()
+      storage.getLatestAdvice(),
+      storage.getLatestBurritoStatus()
     ]);
     setMenu(latestMenu);
     setAdvice(latestAdvice);
+    setBurrito(latestBurrito);
     setLoading(false);
   };
 
@@ -80,10 +83,14 @@ const HomePage = () => {
     const adviceSub = storage.subscribeToAdviceUpdates(() => {
       loadData();
     });
+    const burritoSub = storage.subscribeToBurritoUpdates(() => {
+      loadData();
+    });
 
     return () => {
       menuSub.unsubscribe();
       adviceSub.unsubscribe();
+      burritoSub.unsubscribe();
     };
   }, []);
 
@@ -129,6 +136,37 @@ const HomePage = () => {
              )}
           </Card>
         </ScrollReveal>
+        
+        {/* Burrito Status Card */}
+        <ScrollReveal delay={0.3}>
+          <Card title="Heeft Job vandaag burritos bij?" icon={Sandwich} className="transition-shadow hover:shadow-2xl duration-700 border-orange-100">
+             {loading ? (
+               <LoadingSpinner />
+             ) : burrito && burrito.formattedDate === today ? (
+               <div className="flex flex-col items-center justify-center py-6">
+                 <motion.div 
+                   initial={{ scale: 0.8, opacity: 0 }}
+                   animate={{ scale: 1, opacity: 1 }}
+                   transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                   className={`text-6xl md:text-8xl font-bold font-serif ${burrito.hasBurritos ? 'text-green-600' : 'text-red-500'}`}
+                 >
+                   {burrito.hasBurritos ? 'JA' : 'NEE'}
+                 </motion.div>
+                 <p className="text-stone-500 mt-4 italic">
+                    {burrito.hasBurritos ? "Het is feest vandaag! 🎉" : "Helaas, misschien morgen weer. 🥪"}
+                 </p>
+                 <div className="mt-6 text-xs text-stone-400">
+                    Geüpdatet om {new Date(burrito.timestamp).toLocaleTimeString('nl-NL', {hour: '2-digit', minute:'2-digit'})}
+                 </div>
+               </div>
+             ) : (
+               <div className="flex flex-col items-center justify-center py-8 text-stone-400 text-center">
+                  <Sandwich size={48} className="mb-4 opacity-20" />
+                  <p className="text-lg font-serif italic">Job heeft nog niks laten weten.</p>
+               </div>
+             )}
+          </Card>
+        </ScrollReveal>
 
         <ScrollReveal delay={0.4}>
           <Card title="Cyriel's Advies" icon={Sparkles} className="bg-gradient-to-br from-white to-amber-50/30 transition-shadow hover:shadow-2xl duration-700">
@@ -161,10 +199,12 @@ const HomePage = () => {
   );
 };
 
-const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
+const InputPage = ({ type }: { type: 'menu' | 'advice' | 'burritos' }) => {
   const isMenu = type === 'menu';
+  const isAdvice = type === 'advice';
+  const isBurritos = type === 'burritos';
   
-  const [isLocked, setIsLocked] = useState(type === 'advice');
+  const [isLocked, setIsLocked] = useState(isAdvice || isBurritos);
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
@@ -178,11 +218,12 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
   });
 
   const [adviceContent, setAdviceContent] = useState('');
+  const [burritoStatus, setBurritoStatus] = useState<boolean | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
-    if (type === 'advice') {
+    if (isAdvice || isBurritos) {
       setIsLocked(true);
       setPasswordInput('');
       setAuthError(false);
@@ -192,6 +233,7 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
     // Reset data when switching types
     setMenuData({ dish1: '', price1: '', dish2: '', price2: '', soup: '', priceSoup: '' });
     setAdviceContent('');
+    setBurritoStatus(null);
     setDataLoaded(false);
     setIsNewDay(false);
   }, [type]);
@@ -202,20 +244,18 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
       if (isLocked) return; // Don't load if locked
 
       setIsLoadingData(true);
-      // simple "local date check"
       
       try {
+        const todayNL = new Date().toLocaleString("en-US", {timeZone: "Europe/Amsterdam"});
+        const todayDate = new Date(todayNL);
+        const yyyy = todayDate.getFullYear();
+        const mm = String(todayDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(todayDate.getDate()).padStart(2, '0');
+        const currentValDateStr = `${yyyy}-${mm}-${dd}`;
+
         if (isMenu) {
           const latestMenu = await storage.getLatestMenu();
           
-          // Storage service now returns dateStr in YYYY-MM-DD based on NL time.
-          const todayNL = new Date().toLocaleString("en-US", {timeZone: "Europe/Amsterdam"});
-          const todayDate = new Date(todayNL);
-          const yyyy = todayDate.getFullYear();
-          const mm = String(todayDate.getMonth() + 1).padStart(2, '0');
-          const dd = String(todayDate.getDate()).padStart(2, '0');
-          const currentValDateStr = `${yyyy}-${mm}-${dd}`;
-
           if (latestMenu && latestMenu.dateStr === currentValDateStr) {
             const lines = latestMenu.items.split('\n');
             
@@ -246,22 +286,25 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
           } else {
             setIsNewDay(true);
           }
-        } else {
+        } else if (isAdvice) {
            const latestAdvice = await storage.getLatestAdvice();
            
-           const todayNL = new Date().toLocaleString("en-US", {timeZone: "Europe/Amsterdam"});
-           const todayDate = new Date(todayNL);
-           const yyyy = todayDate.getFullYear();
-           const mm = String(todayDate.getMonth() + 1).padStart(2, '0');
-           const dd = String(todayDate.getDate()).padStart(2, '0');
-           const currentValDateStr = `${yyyy}-${mm}-${dd}`;
-
            if (latestAdvice && latestAdvice.dateStr === currentValDateStr) {
              setAdviceContent(latestAdvice.advice);
              setDataLoaded(true);
              setIsNewDay(false);
            } else {
              setIsNewDay(true);
+           }
+        } else if (isBurritos) {
+           const latestBurrito = await storage.getLatestBurritoStatus();
+           if (latestBurrito && latestBurrito.dateStr === currentValDateStr) {
+             setBurritoStatus(latestBurrito.hasBurritos);
+             setDataLoaded(true);
+             setIsNewDay(false);
+           } else {
+             setIsNewDay(true);
+             setBurritoStatus(null);
            }
         }
       } catch (e) {
@@ -272,11 +315,16 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
     };
 
     loadCurrentData();
-  }, [isMenu, isLocked]);
+  }, [isMenu, isAdvice, isBurritos, isLocked]);
 
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordInput === 'millofdastevehood') {
+    let correctPassword = '';
+    
+    if (isAdvice) correctPassword = 'millofdastevehood';
+    if (isBurritos) correctPassword = 'Alexander1';
+
+    if (passwordInput === correctPassword) {
       setIsLocked(false);
       setAuthError(false);
     } else {
@@ -308,8 +356,11 @@ ${menuData.soup}
 Prijs: € ${menuData.priceSoup}`;
         
         await storage.saveMenu(formattedMenu);
-      } else {
+      } else if (isAdvice) {
         await storage.saveAdvice(adviceContent);
+      } else if (isBurritos) {
+        if (burritoStatus === null) return;
+        await storage.saveBurritoStatus(burritoStatus);
       }
 
       setIsSaved(true);
@@ -323,14 +374,14 @@ Prijs: € ${menuData.priceSoup}`;
     }
   };
 
-  if (isLocked && !isMenu) {
+  if (isLocked) {
     return (
       <PageTransition>
         <div className="max-w-md mx-auto mt-10 md:mt-20">
           <ScrollReveal>
             <Card title="Beveiligde Toegang" icon={Lock}>
               <div className="text-center mb-6 text-stone-600">
-                <p>Deze pagina is alleen toegankelijk voor Cyriel.</p>
+                <p>Deze pagina is alleen toegankelijk voor {isAdvice ? "Cyriel" : "Job"}.</p>
               </div>
               <form onSubmit={handleUnlock} className="space-y-4">
                 <motion.div 
@@ -367,12 +418,28 @@ Prijs: € ${menuData.priceSoup}`;
     );
   }
 
-  const title = isMenu ? "Voer Prins Heerlijk Menu In" : "Voer Cyriel's Advies In";
-  const Icon = isMenu ? Utensils : Coffee;
+  let title = "Invoer";
+  let Icon = PenTool;
   
-  const isMenuValid = (menuData.dish1 + menuData.price1 + menuData.dish2 + menuData.price2 + menuData.soup + menuData.priceSoup).length > 0;
-  const isAdviceValid = adviceContent.trim().length > 0;
-  const isValid = isMenu ? isMenuValid : isAdviceValid;
+  if (isMenu) {
+    title = "Voer Prins Heerlijk Menu In";
+    Icon = Utensils;
+  } else if (isAdvice) {
+    title = "Voer Cyriel's Advies In";
+    Icon = Coffee;
+  } else if (isBurritos) {
+    title = "Heeft Job Burritos bij?";
+    Icon = Sandwich;
+  }
+  
+  let isValid = false;
+  if (isMenu) {
+    isValid = (menuData.dish1 + menuData.price1 + menuData.dish2 + menuData.price2 + menuData.soup + menuData.priceSoup).length > 0;
+  } else if (isAdvice) {
+    isValid = adviceContent.trim().length > 0;
+  } else if (isBurritos) {
+    isValid = burritoStatus !== null;
+  }
 
   return (
     <PageTransition>
@@ -410,12 +477,12 @@ Prijs: € ${menuData.priceSoup}`;
                     className="bg-green-50 text-green-800 px-4 py-2 rounded-lg text-sm flex items-center gap-2 border border-green-100"
                   >
                     <CheckCircle2 size={16} />
-                    <span>Gegevens van vandaag ingeladen. Je bewerkt nu het bestaande menu.</span>
+                    <span>Gegevens van vandaag ingeladen. Je bewerkt nu de bestaande invoer.</span>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              {isMenu ? (
+              {isMenu && (
                 <div className="space-y-4 md:space-y-6">
                    {/* Dish 1 */}
                    <ScrollReveal delay={0.2}>
@@ -534,7 +601,9 @@ Prijs: € ${menuData.priceSoup}`;
                      </div>
                    </ScrollReveal>
                 </div>
-              ) : (
+              )}
+
+              {isAdvice && (
                 <ScrollReveal delay={0.2}>
                   <div className="relative">
                     <textarea
@@ -545,6 +614,33 @@ Prijs: € ${menuData.priceSoup}`;
                       placeholder="Wat is het wijs advies van de dag?"
                       className="w-full p-4 rounded-xl border border-stone-200 bg-stone-50 focus:bg-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all outline-none resize-none font-medium text-stone-700 placeholder:text-stone-400"
                     />
+                  </div>
+                </ScrollReveal>
+              )}
+
+              {isBurritos && (
+                <ScrollReveal delay={0.2}>
+                  <div className="flex flex-col md:flex-row gap-4 justify-center items-center py-8">
+                    <button
+                      type="button"
+                      onClick={() => setBurritoStatus(true)}
+                      className={`w-40 h-40 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-300 border-2 ${burritoStatus === true ? 'bg-green-500 text-white border-green-600 shadow-xl scale-105' : 'bg-white text-stone-400 border-stone-200 hover:border-green-300 hover:text-green-500'}`}
+                    >
+                       <span className="text-3xl font-bold">JA</span>
+                       <span className="text-sm opacity-80">Feest!</span>
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => setBurritoStatus(false)}
+                      className={`w-40 h-40 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-300 border-2 ${burritoStatus === false ? 'bg-red-500 text-white border-red-600 shadow-xl scale-105' : 'bg-white text-stone-400 border-stone-200 hover:border-red-300 hover:text-red-500'}`}
+                    >
+                       <span className="text-3xl font-bold">NEE</span>
+                       <span className="text-sm opacity-80">Helaas...</span>
+                    </button>
+                  </div>
+                  <div className="text-center text-stone-400 text-sm italic">
+                     Selecteer de status voor vandaag
                   </div>
                 </ScrollReveal>
               )}
@@ -664,6 +760,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/input/menu" element={<InputPage type="menu" />} />
           <Route path="/input/advice" element={<InputPage type="advice" />} />
+          <Route path="/input/burritos" element={<InputPage type="burritos" />} />
           <Route path="/history/menu" element={<HistoryPage type="menu" />} />
           <Route path="/history/advice" element={<HistoryPage type="advice" />} />
           <Route path="*" element={<Navigate to="/" replace />} />

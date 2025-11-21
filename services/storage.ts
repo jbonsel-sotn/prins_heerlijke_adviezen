@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { MenuEntry, AdviceEntry } from '../types';
+import { MenuEntry, AdviceEntry, BurritoEntry } from '../types';
 
 // --- Mappers ---
 // Map database snake_case to TypeScript camelCase
@@ -17,6 +17,14 @@ const mapAdviceFromDB = (data: any): AdviceEntry => ({
   dateStr: data.date_str,
   formattedDate: data.formatted_date,
   advice: data.advice,
+  timestamp: data.timestamp
+});
+
+const mapBurritoFromDB = (data: any): BurritoEntry => ({
+  id: data.id,
+  dateStr: data.date_str,
+  formattedDate: data.formatted_date,
+  hasBurritos: data.has_burritos,
   timestamp: data.timestamp
 });
 
@@ -72,9 +80,21 @@ export const getLatestAdvice = async (): Promise<AdviceEntry | null> => {
   return data ? mapAdviceFromDB(data) : null;
 };
 
+export const getLatestBurritoStatus = async (): Promise<BurritoEntry | null> => {
+  const { data, error } = await supabase
+    .from('burritos')
+    .select('*')
+    .order('timestamp', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error) return null;
+  return data ? mapBurritoFromDB(data) : null;
+};
+
 // --- Save Functions ---
 
-export const saveMenu = async (items: string) => {
+const getTimestampAndDate = () => {
   const now = new Date();
   const formattedDate = now.toLocaleDateString('nl-NL', {
     weekday: 'long',
@@ -82,8 +102,19 @@ export const saveMenu = async (items: string) => {
     month: 'long',
     year: 'numeric'
   });
-  const dateStr = now.toISOString().split('T')[0];
+  // Use Europe/Amsterdam time for the dateStr to ensure correct day boundary
+  const todayNL = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Amsterdam"}));
+  const yyyy = todayNL.getFullYear();
+  const mm = String(todayNL.getMonth() + 1).padStart(2, '0');
+  const dd = String(todayNL.getDate()).padStart(2, '0');
+  const dateStr = `${yyyy}-${mm}-${dd}`;
+  
   const timestamp = Date.now();
+  return { dateStr, formattedDate, timestamp };
+};
+
+export const saveMenu = async (items: string) => {
+  const { dateStr, formattedDate, timestamp } = getTimestampAndDate();
 
   const { error } = await supabase
     .from('menus')
@@ -103,15 +134,7 @@ export const saveMenu = async (items: string) => {
 };
 
 export const saveAdvice = async (advice: string) => {
-  const now = new Date();
-  const formattedDate = now.toLocaleDateString('nl-NL', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
-  const dateStr = now.toISOString().split('T')[0];
-  const timestamp = Date.now();
+  const { dateStr, formattedDate, timestamp } = getTimestampAndDate();
 
   const { error } = await supabase
     .from('advices')
@@ -130,6 +153,26 @@ export const saveAdvice = async (advice: string) => {
   }
 };
 
+export const saveBurritoStatus = async (hasBurritos: boolean) => {
+  const { dateStr, formattedDate, timestamp } = getTimestampAndDate();
+
+  const { error } = await supabase
+    .from('burritos')
+    .insert([
+      { 
+        date_str: dateStr,
+        formatted_date: formattedDate,
+        has_burritos: hasBurritos,
+        timestamp: timestamp
+      }
+    ]);
+
+  if (error) {
+    console.error("Error saving burrito status:", error);
+    throw error;
+  }
+};
+
 // --- Realtime Subscriptions ---
 
 export const subscribeToMenuUpdates = (callback: () => void) => {
@@ -143,6 +186,13 @@ export const subscribeToAdviceUpdates = (callback: () => void) => {
   return supabase
     .channel('advices_channel')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'advices' }, callback)
+    .subscribe();
+};
+
+export const subscribeToBurritoUpdates = (callback: () => void) => {
+  return supabase
+    .channel('burritos_channel')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'burritos' }, callback)
     .subscribe();
 };
 
