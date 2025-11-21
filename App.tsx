@@ -4,7 +4,7 @@ import { Layout } from './components/Layout';
 import { MenuEntry, AdviceEntry } from './types';
 import * as storage from './services/storage';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup, Lock, Unlock, Loader2 } from 'lucide-react';
+import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup, Lock, Unlock, Loader2, CheckCircle2 } from 'lucide-react';
 
 // --- Shared Components ---
 
@@ -160,6 +160,8 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
   const [isLocked, setIsLocked] = useState(type === 'advice');
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   const [menuData, setMenuData] = useState({
     dish1: '', price1: '',
@@ -179,7 +181,69 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
     } else {
       setIsLocked(false);
     }
+    // Reset data when switching types
+    setMenuData({ dish1: '', price1: '', dish2: '', price2: '', soup: '', priceSoup: '' });
+    setAdviceContent('');
+    setDataLoaded(false);
   }, [type]);
+
+  // Load existing data for today
+  useEffect(() => {
+    const loadCurrentData = async () => {
+      if (isLocked) return; // Don't load if locked
+
+      setIsLoadingData(true);
+      const todayStr = new Date().toISOString().split('T')[0];
+      
+      try {
+        if (isMenu) {
+          const latestMenu = await storage.getLatestMenu();
+          // Only pre-fill if the menu is from today
+          if (latestMenu && latestMenu.dateStr === todayStr) {
+            const lines = latestMenu.items.split('\n');
+            
+            // Helper function to extract data from formatted string
+            const findVal = (marker: string) => {
+               const idx = lines.findIndex(l => l.includes(marker));
+               return (idx !== -1 && lines[idx + 1]) ? lines[idx + 1].trim() : '';
+            };
+            const findPrice = (marker: string) => {
+               const idx = lines.findIndex(l => l.includes(marker));
+               if (idx === -1) return '';
+               // Search next 3 lines for price
+               for(let i = idx + 1; i < idx + 4 && i < lines.length; i++) {
+                 if (lines[i].includes('Prijs: €')) return lines[i].replace('Prijs: €', '').trim();
+               }
+               return '';
+            };
+
+            setMenuData({
+              dish1: findVal('🍽️ Gerecht 1'),
+              price1: findPrice('🍽️ Gerecht 1'),
+              dish2: findVal('🍽️ Gerecht 2'),
+              price2: findPrice('🍽️ Gerecht 2'),
+              soup: findVal('🥣 Soep'),
+              priceSoup: findPrice('🥣 Soep')
+            });
+            setDataLoaded(true);
+          }
+        } else {
+          // For advice, usually just one field, but same logic applies
+           const latestAdvice = await storage.getLatestAdvice();
+           if (latestAdvice && latestAdvice.dateStr === todayStr) {
+             setAdviceContent(latestAdvice.advice);
+             setDataLoaded(true);
+           }
+        }
+      } catch (e) {
+        console.error("Error loading existing data", e);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    loadCurrentData();
+  }, [isMenu, isLocked]); // Reload when type changes or unlock happens
 
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,6 +266,8 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
     
     try {
       if (isMenu) {
+        // Construct the string, only adding sections if they have content (or if they are empty but we want to keep structure)
+        // We keep the structure consistent so parsing works next time.
         const formattedMenu = `🍽️ Gerecht 1
 ${menuData.dish1}
 Prijs: € ${menuData.price1}
@@ -220,7 +286,6 @@ Prijs: € ${menuData.priceSoup}`;
       }
 
       setIsSaved(true);
-      // Reset form partially? Maybe keep data visible.
       setTimeout(() => setIsSaved(false), 2000);
     } catch (err) {
       alert("Er is iets fout gegaan bij het opslaan. Probeer het opnieuw.");
@@ -270,7 +335,9 @@ Prijs: € ${menuData.priceSoup}`;
 
   const title = isMenu ? "Voer Prins Heerlijk Menu In" : "Voer Cyriel's Advies In";
   const Icon = isMenu ? Utensils : Coffee;
-  const isMenuValid = menuData.dish1 && menuData.price1 && menuData.dish2 && menuData.price2 && menuData.soup && menuData.priceSoup;
+  
+  // Validation logic loosened: Allow save if AT LEAST one character is in the fields (or if loading)
+  const isMenuValid = (menuData.dish1 + menuData.price1 + menuData.dish2 + menuData.price2 + menuData.soup + menuData.priceSoup).length > 0;
   const isAdviceValid = adviceContent.trim().length > 0;
   const isValid = isMenu ? isMenuValid : isAdviceValid;
 
@@ -278,8 +345,24 @@ Prijs: € ${menuData.priceSoup}`;
     <PageTransition>
       <div className="max-w-3xl mx-auto">
         <Card title={title} icon={Icon}>
+          {isLoadingData ? (
+             <div className="py-12 flex justify-center">
+               <Loader2 className="animate-spin text-orange-400" size={32} />
+             </div>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
             
+            {dataLoaded && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }} 
+                animate={{ opacity: 1, height: 'auto' }}
+                className="bg-green-50 text-green-800 px-4 py-2 rounded-lg text-sm flex items-center gap-2 border border-green-100"
+              >
+                <CheckCircle2 size={16} />
+                <span>Gegevens van vandaag ingeladen. Je bewerkt nu het bestaande menu.</span>
+              </motion.div>
+            )}
+
             {isMenu ? (
               <div className="space-y-4 md:space-y-6">
                  {/* Dish 1 */}
@@ -421,6 +504,7 @@ Prijs: € ${menuData.priceSoup}`;
               </button>
             </div>
           </form>
+          )}
         </Card>
       </div>
     </PageTransition>
