@@ -52,6 +52,103 @@ const LoadingSpinner = () => (
   </div>
 );
 
+// --- Custom Animations ---
+
+const BurritoOven = ({ hasBurritos }: { hasBurritos: boolean }) => {
+  return (
+    <div className="relative h-48 w-full flex flex-col items-center justify-center perspective-[1000px]">
+      {/* Smoke Particles (Only if JA) */}
+      <AnimatePresence>
+        {hasBurritos && (
+          <>
+            {[...Array(3)].map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 0, x: 0, scale: 0.5 }}
+                animate={{ 
+                  opacity: [0, 0.4, 0], 
+                  y: -60 - (i * 10), 
+                  x: (i % 2 === 0 ? 10 : -10),
+                  scale: 1.5 
+                }}
+                transition={{ 
+                  duration: 2.5, 
+                  repeat: Infinity, 
+                  delay: i * 0.8,
+                  ease: "easeInOut"
+                }}
+                className="absolute top-10 w-6 h-6 bg-white rounded-full blur-md z-0"
+              />
+            ))}
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Oven Body */}
+      <div className="relative z-10 w-48 h-36 bg-stone-800 rounded-2xl border-4 border-stone-700 shadow-2xl flex items-center justify-center overflow-hidden ring-1 ring-stone-900/50">
+         {/* Interior Background */}
+         <div className="absolute inset-0 bg-stone-950 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]"></div>
+         
+         {/* Heating Elements */}
+         <div className="absolute top-2 left-4 right-4 h-1 bg-orange-900/30 rounded-full"></div>
+         <div className="absolute bottom-2 left-4 right-4 h-1 bg-orange-900/30 rounded-full"></div>
+
+         {/* The Content */}
+         <AnimatePresence mode="wait">
+           {hasBurritos ? (
+             <motion.div
+               key="burrito"
+               initial={{ scale: 0.9, opacity: 0 }}
+               animate={{ scale: 1, opacity: 1 }}
+               transition={{ delay: 0.5, duration: 0.5 }}
+               className="relative z-10 transform translate-y-2"
+             >
+                {/* Burrito Shape */}
+                <div className="w-32 h-12 bg-amber-200 rounded-full shadow-lg relative overflow-hidden border border-amber-300/50 flex items-center">
+                   {/* Foil wrap effect */}
+                   <div className="absolute left-0 top-0 bottom-0 w-16 bg-stone-300 skew-x-12 -ml-4 border-r border-stone-400/30 shadow-sm"></div>
+                   {/* Texture dots */}
+                   <div className="absolute right-4 top-3 w-1 h-1 bg-amber-600/20 rounded-full"></div>
+                   <div className="absolute right-8 bottom-3 w-1 h-1 bg-amber-600/20 rounded-full"></div>
+                </div>
+             </motion.div>
+           ) : (
+             <motion.div
+               key="empty"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               transition={{ delay: 0.5 }}
+               className="text-stone-700 text-xs font-mono relative z-10"
+             >
+               *leeg*
+             </motion.div>
+           )}
+         </AnimatePresence>
+      </div>
+
+      {/* Oven Door */}
+      <motion.div
+         initial={{ rotateX: 0 }}
+         animate={{ rotateX: 105 }} // Open downwards
+         transition={{ duration: 2, ease: "easeInOut", delay: 0.2 }}
+         style={{ transformOrigin: "bottom", transformStyle: "preserve-3d" }}
+         className="absolute bottom-[calc(50%-4.5rem)] z-20 w-48 h-36 bg-stone-200 rounded-2xl border-4 border-stone-300 flex items-center justify-center shadow-lg origin-bottom"
+      >
+         {/* Door Window Frame */}
+         <div className="w-36 h-24 bg-stone-800/10 rounded-lg border border-stone-300/50 flex items-center justify-center backdrop-blur-[1px]">
+            <div className="w-full h-full bg-sky-900/20 rounded border border-white/20"></div>
+         </div>
+         {/* Handle */}
+         <div className="absolute top-4 w-32 h-3 bg-stone-300 rounded-full shadow-sm border border-stone-100"></div>
+      </motion.div>
+
+      {/* Legs */}
+      <div className="absolute -bottom-2 left-4 w-4 h-3 bg-stone-900 rounded-b-lg"></div>
+      <div className="absolute -bottom-2 right-4 w-4 h-3 bg-stone-900 rounded-b-lg"></div>
+    </div>
+  );
+};
+
 // --- Pages ---
 
 const HomePage = () => {
@@ -143,19 +240,28 @@ const HomePage = () => {
              {loading ? (
                <LoadingSpinner />
              ) : burrito && burrito.formattedDate === today ? (
-               <div className="flex flex-col items-center justify-center py-6">
+               <div className="flex flex-col items-center justify-center pt-8 pb-6 overflow-hidden">
+                 
+                 {/* Custom Cartoon Oven Animation */}
+                 <div className="mb-24 scale-110 md:scale-125">
+                   <BurritoOven hasBurritos={burrito.hasBurritos} />
+                 </div>
+
                  <motion.div 
-                   initial={{ scale: 0.8, opacity: 0 }}
-                   animate={{ scale: 1, opacity: 1 }}
-                   transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                   className={`text-6xl md:text-8xl font-bold font-serif ${burrito.hasBurritos ? 'text-green-600' : 'text-red-500'}`}
+                   initial={{ opacity: 0, y: 20 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   transition={{ delay: 1.0, duration: 0.8 }}
+                   className={`text-center space-y-2 ${burrito.hasBurritos ? 'text-green-700' : 'text-stone-500'}`}
                  >
-                   {burrito.hasBurritos ? 'JA' : 'NEE'}
+                   <h3 className="text-2xl md:text-3xl font-serif font-bold">
+                     {burrito.hasBurritos ? "Ja, zeker!" : "Helaas niet..."}
+                   </h3>
+                   <p className="text-stone-500 italic text-lg">
+                      {burrito.hasBurritos ? "Vers uit de oven. Smullen maar! 🎉" : "De oven blijft vandaag leeg. 🥪"}
+                   </p>
                  </motion.div>
-                 <p className="text-stone-500 mt-4 italic">
-                    {burrito.hasBurritos ? "Het is feest vandaag! 🎉" : "Helaas, misschien morgen weer. 🥪"}
-                 </p>
-                 <div className="mt-6 text-xs text-stone-400">
+
+                 <div className="mt-8 text-xs text-stone-400">
                     Geüpdatet om {new Date(burrito.timestamp).toLocaleTimeString('nl-NL', {hour: '2-digit', minute:'2-digit'})}
                  </div>
                </div>
