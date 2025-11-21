@@ -4,7 +4,7 @@ import { Layout } from './components/Layout';
 import { MenuEntry, AdviceEntry } from './types';
 import * as storage from './services/storage';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup, Lock, Unlock } from 'lucide-react';
+import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup, Lock, Unlock, Loader2 } from 'lucide-react';
 
 // --- Shared Components ---
 
@@ -33,22 +33,45 @@ const Card = ({ title, children, icon: Icon, className = "" }: { title: string; 
   </div>
 );
 
+const LoadingSpinner = () => (
+  <div className="flex justify-center items-center p-10">
+    <Loader2 className="animate-spin text-orange-500" size={32} />
+  </div>
+);
+
 // --- Pages ---
 
 const HomePage = () => {
   const [menu, setMenu] = useState<MenuEntry | null>(null);
   const [advice, setAdvice] = useState<AdviceEntry | null>(null);
+  const [loading, setLoading] = useState(true);
   const today = new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-  const loadData = () => {
-    setMenu(storage.getLatestMenu());
-    setAdvice(storage.getLatestAdvice());
+  const loadData = async () => {
+    const [latestMenu, latestAdvice] = await Promise.all([
+      storage.getLatestMenu(),
+      storage.getLatestAdvice()
+    ]);
+    setMenu(latestMenu);
+    setAdvice(latestAdvice);
+    setLoading(false);
   };
 
   useEffect(() => {
     loadData();
-    window.addEventListener('storage-update', loadData);
-    return () => window.removeEventListener('storage-update', loadData);
+
+    // Setup Realtime subscriptions
+    const menuSub = storage.subscribeToMenuUpdates(() => {
+      loadData();
+    });
+    const adviceSub = storage.subscribeToAdviceUpdates(() => {
+      loadData();
+    });
+
+    return () => {
+      menuSub.unsubscribe();
+      adviceSub.unsubscribe();
+    };
   }, []);
 
   return (
@@ -73,10 +96,11 @@ const HomePage = () => {
           transition={{ type: "spring", stiffness: 300 }}
         >
           <Card title={`Prins Heerlijk Menu van ${menu ? menu.formattedDate : today}`} icon={Utensils} className="relative overflow-hidden">
-             {/* Decorative background element */}
              <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-orange-100 rounded-full opacity-20 blur-3xl pointer-events-none"></div>
              
-             {menu && menu.formattedDate === today ? (
+             {loading ? (
+               <LoadingSpinner />
+             ) : menu && menu.formattedDate === today ? (
                <div className="prose prose-stone max-w-none text-base md:text-lg">
                  <div className="whitespace-pre-wrap leading-relaxed text-stone-700 font-medium">
                    {menu.items}
@@ -101,7 +125,9 @@ const HomePage = () => {
           transition={{ type: "spring", stiffness: 300, delay: 0.1 }}
         >
           <Card title="Cyriel's Advies" icon={Sparkles} className="bg-gradient-to-br from-white to-amber-50/30">
-             {advice ? (
+             {loading ? (
+               <LoadingSpinner />
+             ) : advice ? (
                <div className="relative">
                  <div className="text-6xl absolute -top-4 -left-2 text-orange-200 font-serif opacity-50">"</div>
                  <p className="whitespace-pre-wrap text-lg md:text-xl text-stone-700 italic pl-6 md:pl-8 pr-2 relative z-10 font-serif leading-loose">
@@ -131,23 +157,20 @@ const HomePage = () => {
 const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
   const isMenu = type === 'menu';
   
-  // Auth state for Advice
   const [isLocked, setIsLocked] = useState(type === 'advice');
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState(false);
 
-  // State for Menu Inputs
   const [menuData, setMenuData] = useState({
     dish1: '', price1: '',
     dish2: '', price2: '',
     soup: '', priceSoup: ''
   });
 
-  // State for Advice Input
   const [adviceContent, setAdviceContent] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
-  // Reset lock state when switching types
   useEffect(() => {
     if (type === 'advice') {
       setIsLocked(true);
@@ -165,7 +188,6 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
       setAuthError(false);
     } else {
       setAuthError(true);
-      // Shake animation trigger logic could go here
     }
   };
 
@@ -174,11 +196,13 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' }) => {
     setMenuData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
     
-    if (isMenu) {
-      const formattedMenu = `🍽️ Gerecht 1
+    try {
+      if (isMenu) {
+        const formattedMenu = `🍽️ Gerecht 1
 ${menuData.dish1}
 Prijs: € ${menuData.price1}
 
@@ -189,14 +213,20 @@ Prijs: € ${menuData.price2}
 🥣 Soep
 ${menuData.soup}
 Prijs: € ${menuData.priceSoup}`;
-      
-      storage.saveMenu(formattedMenu);
-    } else {
-      storage.saveAdvice(adviceContent);
-    }
+        
+        await storage.saveMenu(formattedMenu);
+      } else {
+        await storage.saveAdvice(adviceContent);
+      }
 
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2000);
+      setIsSaved(true);
+      // Reset form partially? Maybe keep data visible.
+      setTimeout(() => setIsSaved(false), 2000);
+    } catch (err) {
+      alert("Er is iets fout gegaan bij het opslaan. Probeer het opnieuw.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (isLocked && !isMenu) {
@@ -379,12 +409,12 @@ Prijs: € ${menuData.priceSoup}`;
             <div className="flex justify-end pt-4 border-t border-stone-100">
               <button
                 type="submit"
-                disabled={!isValid}
+                disabled={!isValid || isSaving}
                 className="group relative w-full md:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-stone-800 text-white rounded-full font-semibold shadow-lg hover:bg-orange-600 hover:shadow-orange-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden active:scale-95"
               >
                 <span className="relative z-10 flex items-center gap-2">
-                   {isSaved ? "Opgeslagen!" : "Publiceren"} 
-                   {!isSaved && <Save size={18} className="group-hover:scale-110 transition-transform" />}
+                   {isSaving ? <Loader2 className="animate-spin" size={18}/> : isSaved ? "Opgeslagen!" : "Publiceren"} 
+                   {!isSaving && !isSaved && <Save size={18} className="group-hover:scale-110 transition-transform" />}
                 </span>
                 
                 <div className={`absolute inset-0 bg-green-500 transition-transform duration-500 origin-left ${isSaved ? 'scale-x-100' : 'scale-x-0'}`} />
@@ -399,14 +429,28 @@ Prijs: € ${menuData.priceSoup}`;
 
 const HistoryPage = ({ type }: { type: 'menu' | 'advice' }) => {
   const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const title = type === 'menu' ? "Historie: Menu's" : "Historie: Adviezen";
   
   useEffect(() => {
-    if (type === 'menu') {
-      setItems(storage.getUniqueHistory(storage.getMenus()));
-    } else {
-      setItems(storage.getUniqueHistory(storage.getAdvices()));
-    }
+    const fetchHistory = async () => {
+      setLoading(true);
+      try {
+        if (type === 'menu') {
+          const raw = await storage.getMenus();
+          setItems(storage.getUniqueHistory(raw));
+        } else {
+          const raw = await storage.getAdvices();
+          setItems(storage.getUniqueHistory(raw));
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchHistory();
   }, [type]);
 
   return (
@@ -419,7 +463,11 @@ const HistoryPage = ({ type }: { type: 'menu' | 'advice' }) => {
           <h1 className="text-2xl md:text-3xl font-serif font-bold text-stone-800 leading-tight">{title}</h1>
         </div>
 
-        {items.length === 0 ? (
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="animate-spin text-orange-500" size={40} />
+          </div>
+        ) : items.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-stone-200">
             <p className="text-stone-400 font-serif text-lg">Nog geen historie beschikbaar.</p>
           </div>

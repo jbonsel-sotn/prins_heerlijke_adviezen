@@ -1,97 +1,153 @@
+import { supabase } from './supabase';
 import { MenuEntry, AdviceEntry } from '../types';
 
-const MENU_KEY = 'prins_heerlijk_menus';
-const ADVICE_KEY = 'prins_heerlijk_advices';
+// --- Mappers ---
+// Map database snake_case to TypeScript camelCase
 
-export const getMenus = (): MenuEntry[] => {
-  try {
-    const data = localStorage.getItem(MENU_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch (e) {
-    console.error("Failed to load menus", e);
+const mapMenuFromDB = (data: any): MenuEntry => ({
+  id: data.id,
+  dateStr: data.date_str,
+  formattedDate: data.formatted_date,
+  items: data.items,
+  timestamp: data.timestamp
+});
+
+const mapAdviceFromDB = (data: any): AdviceEntry => ({
+  id: data.id,
+  dateStr: data.date_str,
+  formattedDate: data.formatted_date,
+  advice: data.advice,
+  timestamp: data.timestamp
+});
+
+// --- Fetch Functions ---
+
+export const getMenus = async (): Promise<MenuEntry[]> => {
+  const { data, error } = await supabase
+    .from('menus')
+    .select('*')
+    .order('timestamp', { ascending: false });
+  
+  if (error) {
+    console.error("Error fetching menus:", error);
     return [];
   }
+  return (data || []).map(mapMenuFromDB);
 };
 
-export const saveMenu = (items: string) => {
-  const menus = getMenus();
+export const getAdvices = async (): Promise<AdviceEntry[]> => {
+  const { data, error } = await supabase
+    .from('advices')
+    .select('*')
+    .order('timestamp', { ascending: false });
+
+  if (error) {
+    console.error("Error fetching advices:", error);
+    return [];
+  }
+  return (data || []).map(mapAdviceFromDB);
+};
+
+export const getLatestMenu = async (): Promise<MenuEntry | null> => {
+  const { data, error } = await supabase
+    .from('menus')
+    .select('*')
+    .order('timestamp', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error) return null;
+  return data ? mapMenuFromDB(data) : null;
+};
+
+export const getLatestAdvice = async (): Promise<AdviceEntry | null> => {
+  const { data, error } = await supabase
+    .from('advices')
+    .select('*')
+    .order('timestamp', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error) return null;
+  return data ? mapAdviceFromDB(data) : null;
+};
+
+// --- Save Functions ---
+
+export const saveMenu = async (items: string) => {
   const now = new Date();
-  
-  // Format Dutch date
   const formattedDate = now.toLocaleDateString('nl-NL', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric'
   });
-  
-  // ISO string for data logic (YYYY-MM-DD)
   const dateStr = now.toISOString().split('T')[0];
+  const timestamp = Date.now();
 
-  const newEntry: MenuEntry = {
-    id: crypto.randomUUID(),
-    dateStr,
-    formattedDate,
-    items,
-    timestamp: Date.now()
-  };
+  const { error } = await supabase
+    .from('menus')
+    .insert([
+      { 
+        date_str: dateStr,
+        formatted_date: formattedDate,
+        items: items,
+        timestamp: timestamp
+      }
+    ]);
 
-  const updatedMenus = [newEntry, ...menus];
-  localStorage.setItem(MENU_KEY, JSON.stringify(updatedMenus));
-  // Dispatch event for live updates across components if needed (though we might use Context or simple refetch)
-  window.dispatchEvent(new Event('storage-update'));
-};
-
-export const getAdvices = (): AdviceEntry[] => {
-  try {
-    const data = localStorage.getItem(ADVICE_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch (e) {
-    console.error("Failed to load advices", e);
-    return [];
+  if (error) {
+    console.error("Error saving menu:", error);
+    throw error;
   }
 };
 
-export const saveAdvice = (advice: string) => {
-  const advices = getAdvices();
+export const saveAdvice = async (advice: string) => {
   const now = new Date();
-  
   const formattedDate = now.toLocaleDateString('nl-NL', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric'
   });
-  
   const dateStr = now.toISOString().split('T')[0];
+  const timestamp = Date.now();
 
-  const newEntry: AdviceEntry = {
-    id: crypto.randomUUID(),
-    dateStr,
-    formattedDate,
-    advice,
-    timestamp: Date.now()
-  };
+  const { error } = await supabase
+    .from('advices')
+    .insert([
+      { 
+        date_str: dateStr,
+        formatted_date: formattedDate,
+        advice: advice,
+        timestamp: timestamp
+      }
+    ]);
 
-  const updatedAdvices = [newEntry, ...advices];
-  localStorage.setItem(ADVICE_KEY, JSON.stringify(updatedAdvices));
-  window.dispatchEvent(new Event('storage-update'));
+  if (error) {
+    console.error("Error saving advice:", error);
+    throw error;
+  }
 };
 
-export const getLatestMenu = (): MenuEntry | null => {
-  const menus = getMenus();
-  if (menus.length === 0) return null;
-  // Sort by timestamp desc just in case
-  return menus.sort((a, b) => b.timestamp - a.timestamp)[0];
+// --- Realtime Subscriptions ---
+
+export const subscribeToMenuUpdates = (callback: () => void) => {
+  return supabase
+    .channel('menus_channel')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'menus' }, callback)
+    .subscribe();
 };
 
-export const getLatestAdvice = (): AdviceEntry | null => {
-  const advices = getAdvices();
-  if (advices.length === 0) return null;
-  return advices.sort((a, b) => b.timestamp - a.timestamp)[0];
+export const subscribeToAdviceUpdates = (callback: () => void) => {
+  return supabase
+    .channel('advices_channel')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'advices' }, callback)
+    .subscribe();
 };
 
-// Get unique history (latest per day)
+// --- Helper ---
+
 export const getUniqueHistory = <T extends MenuEntry | AdviceEntry>(items: T[]): T[] => {
   const map = new Map<string, T>();
   
