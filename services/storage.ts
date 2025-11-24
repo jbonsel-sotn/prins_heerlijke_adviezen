@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { MenuEntry, AdviceEntry, BurritoEntry } from '../types';
+import { MenuEntry, AdviceEntry, BurritoEntry, DishPhotoEntry } from '../types';
 
 // --- Mappers ---
 // Map database snake_case to TypeScript camelCase
@@ -17,6 +17,7 @@ const mapAdviceFromDB = (data: any): AdviceEntry => ({
   dateStr: data.date_str,
   formattedDate: data.formatted_date,
   advice: data.advice,
+  photoUrl: data.photo_url,
   timestamp: data.timestamp
 });
 
@@ -25,6 +26,16 @@ const mapBurritoFromDB = (data: any): BurritoEntry => ({
   dateStr: data.date_str,
   formattedDate: data.formatted_date,
   hasBurritos: data.has_burritos,
+  timestamp: data.timestamp
+});
+
+const mapPhotoFromDB = (data: any): DishPhotoEntry => ({
+  id: data.id,
+  dateStr: data.date_str,
+  dishSection: data.dish_section,
+  photoUrl: data.photo_url,
+  uploaderName: data.uploader_name,
+  comment: data.comment,
   timestamp: data.timestamp
 });
 
@@ -92,6 +103,20 @@ export const getLatestBurritoStatus = async (): Promise<BurritoEntry | null> => 
   return data ? mapBurritoFromDB(data) : null;
 };
 
+export const getDishPhotos = async (dateStr: string): Promise<DishPhotoEntry[]> => {
+  const { data, error } = await supabase
+    .from('dish_photos')
+    .select('*')
+    .eq('date_str', dateStr)
+    .order('timestamp', { ascending: false });
+
+  if (error) {
+    console.error("Error fetching photos:", error);
+    return [];
+  }
+  return (data || []).map(mapPhotoFromDB);
+};
+
 // --- Save Functions ---
 
 const getTimestampAndDate = () => {
@@ -133,7 +158,7 @@ export const saveMenu = async (items: string) => {
   }
 };
 
-export const saveAdvice = async (advice: string) => {
+export const saveAdvice = async (advice: string, photoUrl?: string) => {
   const { dateStr, formattedDate, timestamp } = getTimestampAndDate();
 
   const { error } = await supabase
@@ -143,6 +168,7 @@ export const saveAdvice = async (advice: string) => {
         date_str: dateStr,
         formatted_date: formattedDate,
         advice: advice,
+        photo_url: photoUrl,
         timestamp: timestamp
       }
     ]);
@@ -173,6 +199,50 @@ export const saveBurritoStatus = async (hasBurritos: boolean) => {
   }
 };
 
+export const uploadPhoto = async (file: File): Promise<string> => {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+  const filePath = `${fileName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('menu-photos')
+    .upload(filePath, file);
+
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  const { data } = supabase.storage
+    .from('menu-photos')
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
+};
+
+export const saveDishPhoto = async (dishSection: string, photoUrl: string, uploaderName: string, comment: string) => {
+  // We use the date from when the menu was created ideally, but for now we link it to "today" logic
+  // or pass the dateStr explicitly. For simplicity on the homepage, we use "Today".
+  const { dateStr, timestamp } = getTimestampAndDate();
+
+  const { error } = await supabase
+    .from('dish_photos')
+    .insert([
+      {
+        date_str: dateStr,
+        dish_section: dishSection,
+        photo_url: photoUrl,
+        uploader_name: uploaderName,
+        comment: comment,
+        timestamp: timestamp
+      }
+    ]);
+
+  if (error) {
+    console.error("Error saving photo metadata:", error);
+    throw error;
+  }
+};
+
 // --- Realtime Subscriptions ---
 
 export const subscribeToMenuUpdates = (callback: () => void) => {
@@ -193,6 +263,13 @@ export const subscribeToBurritoUpdates = (callback: () => void) => {
   return supabase
     .channel('burritos_channel')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'burritos' }, callback)
+    .subscribe();
+};
+
+export const subscribeToPhotoUpdates = (callback: () => void) => {
+  return supabase
+    .channel('photos_channel')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dish_photos' }, callback)
     .subscribe();
 };
 

@@ -12,12 +12,30 @@ const NavLink = ({ to, children, icon: Icon }: { to: string; children: React.Rea
   return (
     <Link
       to={to}
-      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 group hover:bg-orange-100 ${
-        isActive ? 'bg-orange-200 text-orange-900 font-semibold shadow-inner' : 'text-stone-700 hover:text-orange-800'
-      }`}
+      className="relative group"
     >
-      <Icon size={18} className="group-hover:rotate-12 transition-transform duration-300" />
-      <span>{children}</span>
+      <div className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 relative z-10 ${
+        isActive ? 'text-orange-900 font-semibold' : 'text-stone-700 hover:text-orange-800'
+      }`}>
+        <motion.div
+          whileHover={{ rotate: [0, -10, 10, -10, 0], transition: { duration: 0.5 } }}
+        >
+          <Icon size={18} />
+        </motion.div>
+        <span>{children}</span>
+      </div>
+      
+      {/* Animated Background Pill */}
+      {isActive && (
+        <motion.div
+          layoutId="nav-pill"
+          className="absolute inset-0 bg-orange-200 rounded-lg shadow-inner z-0"
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        />
+      )}
+      {!isActive && (
+        <div className="absolute inset-0 bg-orange-100 rounded-lg scale-0 group-hover:scale-100 transition-transform duration-300 origin-center z-0 opacity-50" />
+      )}
     </Link>
   );
 };
@@ -33,29 +51,44 @@ const Dropdown = ({ title, icon: Icon, items }: { title: string; icon: any; item
   return (
     <div className="relative z-50" onMouseEnter={() => setIsOpen(true)} onMouseLeave={() => setIsOpen(false)}>
       <button
-        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 text-stone-700 hover:text-orange-800 hover:bg-orange-100 ${isOpen ? 'bg-orange-50' : ''}`}
+        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 text-stone-700 hover:text-orange-800 group ${isOpen ? 'bg-orange-50' : ''}`}
       >
-        <Icon size={18} className="transition-transform duration-300" />
+        <motion.div
+           animate={isOpen ? { scale: 1.1 } : { scale: 1 }}
+        >
+           <Icon size={18} />
+        </motion.div>
         <span>{title}</span>
-        <ChevronDown size={14} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+        <motion.div
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <ChevronDown size={14} />
+        </motion.div>
       </button>
 
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-orange-100 overflow-hidden"
+            initial={{ opacity: 0, y: 10, scale: 0.95, filter: "blur(10px)" }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: 10, scale: 0.95, filter: "blur(10px)" }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="absolute top-full left-0 mt-2 w-64 bg-white/95 backdrop-blur-xl rounded-xl shadow-xl border border-orange-100 overflow-hidden ring-1 ring-orange-900/5"
           >
-            {items.map((item) => (
+            {items.map((item, idx) => (
               <Link
                 key={item.to}
                 to={item.to}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-orange-50 text-stone-600 hover:text-orange-700 transition-colors border-b border-orange-50/50 last:border-0"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-orange-50 text-stone-600 hover:text-orange-700 transition-colors border-b border-orange-50/50 last:border-0 group"
               >
-                 <item.icon size={16} className="text-orange-400" />
+                 <motion.div
+                   initial={{ x: 0 }}
+                   whileHover={{ x: 3, scale: 1.1 }}
+                   transition={{ type: "spring", stiffness: 300 }}
+                 >
+                    <item.icon size={16} className="text-orange-400 group-hover:text-orange-600" />
+                 </motion.div>
                 {item.label}
               </Link>
             ))}
@@ -76,11 +109,11 @@ const MobileNavLink = ({ to, children, icon: Icon, onClick }: { to: string; chil
     <Link
       to={to}
       onClick={onClick}
-      className={`flex items-center gap-4 px-4 py-4 rounded-xl transition-all duration-200 ${
+      className={`flex items-center gap-4 px-4 py-4 rounded-xl transition-all duration-200 group ${
         isActive ? 'bg-orange-100 text-orange-900 font-semibold' : 'text-stone-600 hover:bg-stone-50'
       }`}
     >
-      <div className={`p-2 rounded-lg ${isActive ? 'bg-orange-200 text-orange-800' : 'bg-stone-100 text-stone-500'}`}>
+      <div className={`p-2 rounded-lg transition-transform duration-300 group-hover:scale-110 ${isActive ? 'bg-orange-200 text-orange-800' : 'bg-stone-100 text-stone-500'}`}>
         <Icon size={20} />
       </div>
       <span className="text-lg">{children}</span>
@@ -117,20 +150,24 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   }, [isMobileMenuOpen]);
 
   return (
-    <div className="min-h-screen bg-stone-100 text-stone-800 flex flex-col font-sans selection:bg-orange-200">
-      <nav className="bg-white/90 backdrop-blur-md sticky top-0 z-50 border-b border-orange-100 shadow-sm transition-all duration-300">
+    <div className="min-h-screen bg-transparent text-stone-800 flex flex-col font-sans selection:bg-orange-200 selection:text-orange-900">
+      <nav className="bg-white/70 backdrop-blur-lg sticky top-0 z-50 border-b border-white/20 shadow-sm transition-all duration-300 supports-[backdrop-filter]:bg-white/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20 items-center">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3 group relative z-50">
-              <div className="bg-orange-500 p-2 rounded-full text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <motion.div 
+                whileHover={{ rotate: 180 }}
+                transition={{ duration: 0.6, ease: "backOut" }}
+                className="bg-gradient-to-br from-orange-400 to-orange-600 p-2 rounded-full text-white shadow-lg shadow-orange-500/30"
+              >
                 <ChefHat size={24} className="md:w-7 md:h-7" />
-              </div>
+              </motion.div>
               <div className="flex flex-col">
-                <h1 className="text-xl md:text-2xl font-bold text-stone-800 font-serif leading-none group-hover:text-orange-700 transition-colors">
+                <h1 className="text-xl md:text-2xl font-bold text-stone-800 font-serif leading-none group-hover:text-orange-700 transition-colors tracking-tight">
                   Prins Heerlijke
                 </h1>
-                <span className="text-sm md:text-base font-serif text-stone-600 -mt-1">Adviezen</span>
+                <span className="text-sm md:text-base font-serif text-stone-600 -mt-1 group-hover:text-stone-800 transition-colors">Adviezen</span>
               </div>
             </Link>
 
@@ -184,11 +221,11 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="fixed inset-0 z-40 bg-white md:hidden pt-24 px-4 pb-8 overflow-y-auto flex flex-col"
+            initial={{ opacity: 0, y: -20, filter: "blur(10px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: -20, filter: "blur(10px)" }}
+            transition={{ duration: 0.3, ease: "circOut" }}
+            className="fixed inset-0 z-40 bg-white/95 backdrop-blur-xl md:hidden pt-24 px-4 pb-8 overflow-y-auto flex flex-col"
           >
             <div className="flex-grow max-w-md mx-auto w-full space-y-8">
               <MobileNavLink to="/" icon={Home} onClick={() => setIsMobileMenuOpen(false)}>Home</MobileNavLink>
@@ -210,18 +247,24 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             </div>
 
             <div className="mt-auto text-center pt-8 pb-4 opacity-50">
-               <ChefHat size={40} className="mx-auto mb-2 text-stone-300" />
+               <motion.div
+                 animate={{ rotate: [0, 10, -10, 0] }}
+                 transition={{ repeat: Infinity, duration: 4, repeatDelay: 1 }}
+                 className="inline-block"
+               >
+                 <ChefHat size={40} className="mx-auto mb-2 text-stone-300" />
+               </motion.div>
                <p className="font-serif italic text-stone-400">Smakelijk eten</p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <main className="flex-grow max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+      <main className="flex-grow max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full relative z-10">
         {children}
       </main>
 
-      <footer className="bg-white border-t border-orange-100 mt-auto relative z-0">
+      <footer className="bg-white/50 backdrop-blur-sm border-t border-orange-100 mt-auto relative z-0">
         <div className="max-w-6xl mx-auto px-4 py-8 text-center text-stone-500 text-sm">
           <p className="font-serif italic text-lg text-orange-800/60 mb-2">"Smakelijk eten en wijs advies"</p>
           <p>&copy; {new Date().getFullYear()} Prins Heerlijke Adviezen.</p>

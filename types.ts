@@ -11,6 +11,7 @@ export interface AdviceEntry {
   dateStr: string;
   formattedDate: string;
   advice: string;
+  photoUrl?: string;
   timestamp: number;
 }
 
@@ -19,6 +20,16 @@ export interface BurritoEntry {
   dateStr: string;
   formattedDate: string;
   hasBurritos: boolean;
+  timestamp: number;
+}
+
+export interface DishPhotoEntry {
+  id: string;
+  dateStr: string;
+  dishSection: string; // e.g., "Gerecht 1", "Gerecht 2", "Soep"
+  photoUrl: string;
+  uploaderName: string;
+  comment?: string;
   timestamp: number;
 }
 
