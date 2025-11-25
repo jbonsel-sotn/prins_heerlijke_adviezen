@@ -1,3 +1,4 @@
+
 -- INSTRUCTIES VOOR DATABASE (SQL EDITOR):
 -- 1. Ga naar je Supabase Dashboard
 -- 2. Klik links op 'SQL Editor' (icoon >_)
@@ -38,6 +39,23 @@ create table if not exists burritos (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
+-- Tabel voor Overige Dagelijkse Status (Bengels, etc.)
+create table if not exists daily_status (
+  id uuid default gen_random_uuid() primary key,
+  date_str text not null,
+  formatted_date text not null,
+  bengels boolean, -- kan null zijn
+  lekker_vreten boolean, -- kan null zijn
+  korvel boolean, -- kan null zijn
+  timestamp bigint not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- UPDATE: Nieuwe kolommen voor Visdag en Burritos in daily_status
+alter table daily_status add column if not exists visdag boolean;
+alter table daily_status add column if not exists burritos boolean;
+
+
 -- Tabel voor Foto's van Gerechten aanmaken
 create table if not exists dish_photos (
   id uuid default gen_random_uuid() primary key,
@@ -46,9 +64,13 @@ create table if not exists dish_photos (
   photo_url text not null,
   uploader_name text not null,
   comment text,
+  rating integer default 0, -- Nieuw: aantal sterren
   timestamp bigint not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+
+-- UPDATE: Voeg rating kolom toe als tabel al bestaat
+alter table dish_photos add column if not exists rating integer default 0;
 
 -- Zet Realtime aan
 do $$
@@ -64,6 +86,9 @@ begin
   end if;
   if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'dish_photos') then
     alter publication supabase_realtime add table dish_photos;
+  end if;
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'daily_status') then
+    alter publication supabase_realtime add table daily_status;
   end if;
 end;
 $$;

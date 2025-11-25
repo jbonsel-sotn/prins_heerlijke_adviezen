@@ -1,3 +1,4 @@
+
 export interface MenuEntry {
   id: string;
   dateStr: string; // Format: YYYY-MM-DD for sorting/filtering
@@ -23,6 +24,18 @@ export interface BurritoEntry {
   timestamp: number;
 }
 
+export interface DailyStatusEntry {
+  id: string;
+  dateStr: string;
+  formattedDate: string;
+  bengels: boolean | null;
+  lekkerVreten: boolean | null;
+  korvel: boolean | null;
+  visdag: boolean | null;    // Nieuw
+  burritos: boolean | null;  // Nieuw (verplaatst van eigen tabel naar hier)
+  timestamp: number;
+}
+
 export interface DishPhotoEntry {
   id: string;
   dateStr: string;
@@ -30,7 +43,8 @@ export interface DishPhotoEntry {
   photoUrl: string;
   uploaderName: string;
   comment?: string;
+  rating: number;
   timestamp: number;
 }
 
-export type EntryType = 'menu' | 'advice' | 'burritos';
+export type EntryType = 'menu' | 'advice' | 'burritos' | 'other';

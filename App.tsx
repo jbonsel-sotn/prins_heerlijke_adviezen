@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
-import { MenuEntry, AdviceEntry, BurritoEntry, DishPhotoEntry } from './types';
+import { MenuEntry, AdviceEntry, BurritoEntry, DishPhotoEntry, DailyStatusEntry } from './types';
 import * as storage from './services/storage';
 import { motion, AnimatePresence, useScroll, useTransform, Variants } from 'framer-motion';
-import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup, Lock, Unlock, Loader2, CheckCircle2, Sandwich, PenTool, Camera, Image as ImageIcon, UploadCloud, X } from 'lucide-react';
+import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup, Lock, Unlock, Loader2, CheckCircle2, Sandwich, PenTool, Camera, Image as ImageIcon, UploadCloud, X, ToggleLeft, ToggleRight, Star } from 'lucide-react';
 
 // --- Shared Components ---
 
@@ -21,7 +22,7 @@ const AnimatedBackground = () => {
           scale: [1, 1.1, 1]
         }}
         transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-orange-200/20 rounded-full blur-[100px]" 
+        className="hidden md:block absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-orange-200/20 rounded-full blur-[100px] will-change-transform" 
       />
       <motion.div 
         animate={{ 
@@ -30,7 +31,7 @@ const AnimatedBackground = () => {
           scale: [1, 1.2, 1]
         }}
         transition={{ duration: 25, repeat: Infinity, ease: "linear", delay: 2 }}
-        className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-amber-200/20 rounded-full blur-[100px]" 
+        className="hidden md:block absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-amber-200/20 rounded-full blur-[100px] will-change-transform" 
       />
       <motion.div 
         animate={{ 
@@ -39,7 +40,7 @@ const AnimatedBackground = () => {
           opacity: [0.3, 0.6, 0.3]
         }}
         transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-[40%] left-[30%] w-[300px] h-[300px] bg-rose-200/10 rounded-full blur-[80px]" 
+        className="hidden md:block absolute top-[40%] left-[30%] w-[300px] h-[300px] bg-rose-200/10 rounded-full blur-[80px] will-change-transform" 
       />
     </div>
   );
@@ -133,86 +134,112 @@ const LoadingSpinner = () => (
 
 // --- Custom Animations ---
 
-const BurritoOven = ({ hasBurritos }: { hasBurritos: boolean }) => {
+const StatusDots = ({ status }: { status: DailyStatusEntry | null }) => {
+  const today = new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  
+  // If no status or status is old, we consider everything "reset" (null)
+  const isCurrent = status && status.formattedDate === today;
+  
+  const getDotColorClass = (val: boolean | null | undefined) => {
+    if (!isCurrent || val === null || val === undefined) return "bg-stone-200 border-stone-300 shadow-inner";
+    if (val === true) return "bg-gradient-to-tr from-emerald-500 to-teal-400 border-emerald-300 shadow-lg shadow-emerald-500/30";
+    return "bg-gradient-to-tr from-rose-500 to-pink-500 border-rose-300 shadow-lg shadow-rose-500/30";
+  };
+
+  const items = [
+    { label: "Bengels", value: status?.bengels },
+    { label: "Lekker vreten op kantoor?", value: status?.lekkerVreten },
+    { label: "Korvel", value: status?.korvel },
+    { label: "Visdag", value: status?.visdag },
+    { label: "Heeft Job Burritos bij?", value: status?.burritos },
+  ];
+
   return (
-    <div className="relative h-48 w-full flex flex-col items-center justify-center perspective-[1000px]">
-      {/* Smoke Particles (Only if JA) */}
-      <AnimatePresence>
-        {hasBurritos && (
-          <>
-            {[...Array(3)].map((_, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 0, x: 0, scale: 0.5 }}
-                animate={{ 
-                  opacity: [0, 0.4, 0], 
-                  y: -60 - (i * 10), 
-                  x: (i % 2 === 0 ? 10 : -10),
-                  scale: 1.5 
-                }}
-                transition={{ 
-                  duration: 2.5, 
-                  repeat: Infinity, 
-                  delay: i * 0.8,
-                  ease: "easeInOut"
-                }}
-                className="absolute top-10 w-6 h-6 bg-white rounded-full blur-md z-0"
-              />
-            ))}
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Oven Body */}
-      <div className="relative z-10 w-48 h-36 bg-stone-800 rounded-2xl border-4 border-stone-700 shadow-2xl flex items-center justify-center overflow-hidden ring-1 ring-stone-900/50">
-         <div className="absolute inset-0 bg-stone-950 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]"></div>
-         <div className="absolute top-2 left-4 right-4 h-1 bg-orange-900/30 rounded-full animate-pulse"></div>
-         <div className="absolute bottom-2 left-4 right-4 h-1 bg-orange-900/30 rounded-full animate-pulse"></div>
-
-         <AnimatePresence mode="wait">
-           {hasBurritos ? (
-             <motion.div
-               key="burrito"
-               initial={{ scale: 0.9, opacity: 0 }}
-               animate={{ scale: 1, opacity: 1 }}
-               transition={{ delay: 0.5, duration: 0.5 }}
-               className="relative z-10 transform translate-y-2"
+    <div className="flex flex-col md:grid md:grid-cols-5 gap-3 md:gap-4 w-full">
+      {items.map((item, idx) => (
+        <motion.div 
+          key={idx}
+          whileHover={{ y: -5 }}
+          className="bg-white/90 backdrop-blur rounded-xl md:rounded-2xl p-4 flex flex-row md:flex-col items-center justify-between gap-4 shadow-lg border border-orange-50/50 relative overflow-hidden h-auto md:h-full"
+        >
+          <span className="text-sm font-bold text-stone-700 text-left md:text-center font-serif leading-tight z-10 flex-1 md:flex-none">{item.label}</span>
+          <div className="relative z-10 shrink-0 md:mb-2">
+             {/* Pulsating Ring (Outer Glow) */}
+             {(isCurrent && (item.value === true || item.value === false)) && (
+               <motion.div 
+                 animate={{ scale: [1, 1.5], opacity: [0, 0.6, 0] }}
+                 transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                 className={`absolute inset-0 rounded-full ${item.value ? 'bg-emerald-400' : 'bg-rose-400'}`}
+               />
+             )}
+             
+             {/* Main Dot */}
+             <div
+               className={`w-8 h-8 md:w-10 md:h-10 rounded-full border-2 transition-all duration-300 flex items-center justify-center text-[10px] md:text-xs font-bold text-white relative z-10 ${getDotColorClass(item.value)}`}
              >
-                <div className="w-32 h-12 bg-amber-200 rounded-full shadow-lg relative overflow-hidden border border-amber-300/50 flex items-center">
-                   <div className="absolute left-0 top-0 bottom-0 w-16 bg-stone-300 skew-x-12 -ml-4 border-r border-stone-400/30 shadow-sm"></div>
-                   <div className="absolute right-4 top-3 w-1 h-1 bg-amber-600/20 rounded-full"></div>
-                   <div className="absolute right-8 bottom-3 w-1 h-1 bg-amber-600/20 rounded-full"></div>
-                </div>
-             </motion.div>
-           ) : (
-             <motion.div
-               key="empty"
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               transition={{ delay: 0.5 }}
-               className="text-stone-700 text-xs font-mono relative z-10"
-             >
-               *leeg*
-             </motion.div>
-           )}
-         </AnimatePresence>
-      </div>
+                {/* Inner shine - only visible if colored */}
+                {(isCurrent && (item.value === true || item.value === false)) && (
+                  <div className="absolute top-1 left-2 w-2 h-1 bg-white/40 rounded-full blur-[1px]"></div>
+                )}
+             </div>
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  );
+};
 
-      <motion.div
-         initial={{ rotateX: 0 }}
-         animate={{ rotateX: 105 }}
-         transition={{ duration: 2, ease: "easeInOut", delay: 0.2 }}
-         style={{ transformOrigin: "bottom", transformStyle: "preserve-3d" }}
-         className="absolute bottom-[calc(50%-4.5rem)] z-20 w-48 h-36 bg-stone-200 rounded-2xl border-4 border-stone-300 flex items-center justify-center shadow-lg origin-bottom"
-      >
-         <div className="w-36 h-24 bg-stone-800/10 rounded-lg border border-stone-300/50 flex items-center justify-center backdrop-blur-[1px]">
-            <div className="w-full h-full bg-sky-900/20 rounded border border-white/20"></div>
-         </div>
-         <div className="absolute top-4 w-32 h-3 bg-stone-300 rounded-full shadow-sm border border-stone-100"></div>
-      </motion.div>
+// --- Burrito Plate 3D Animation ---
+const BurritoPlate = ({ hasBurritos }: { hasBurritos: boolean }) => {
+  return (
+    <div className="w-full h-48 md:h-64 flex items-center justify-center relative perspective-[1000px]">
+       <motion.div 
+         initial={{ rotateX: 20, rotateY: 0 }}
+         animate={{ rotateX: 20, rotateY: [0, 5, -5, 0] }}
+         transition={{ rotateY: { duration: 6, repeat: Infinity, ease: "easeInOut" } }}
+         className="w-40 h-40 md:w-56 md:h-56 bg-white rounded-full shadow-2xl border-4 border-stone-100 flex items-center justify-center relative overflow-visible transform-style-3d"
+       >
+          {/* Inner Plate Shadow */}
+          <div className="absolute inset-2 rounded-full border border-stone-100 shadow-[inset_0_4px_10px_rgba(0,0,0,0.05)]"></div>
 
-      <div className="absolute -bottom-2 left-4 w-4 h-3 bg-stone-900 rounded-b-lg"></div>
-      <div className="absolute -bottom-2 right-4 w-4 h-3 bg-stone-900 rounded-b-lg"></div>
+          {hasBurritos ? (
+             <div className="relative w-full h-full flex items-center justify-center">
+                 {/* Burrito 1 */}
+                 <motion.div 
+                   className="absolute w-28 h-10 md:w-40 md:h-14 rounded-full shadow-lg overflow-hidden flex left-1/2 -translate-x-1/2"
+                   style={{ rotate: 45, y: -5, zIndex: 1 }}
+                 >
+                    <div className="w-1/2 h-full bg-[#E8CBA5]"></div>
+                    <div className="w-1/2 h-full bg-gradient-to-r from-stone-300 via-white to-stone-300 border-l border-stone-300/50"></div>
+                 </motion.div>
+                 
+                 {/* Burrito 2 */}
+                 <motion.div 
+                   className="absolute w-28 h-10 md:w-40 md:h-14 rounded-full shadow-lg overflow-hidden flex left-1/2 -translate-x-1/2"
+                   style={{ rotate: -45, y: 5, zIndex: 2 }}
+                 >
+                    <div className="w-1/2 h-full bg-[#E8CBA5]"></div>
+                    <div className="w-1/2 h-full bg-gradient-to-r from-stone-300 via-white to-stone-300 border-l border-stone-300/50"></div>
+                 </motion.div>
+
+                 {/* Smoke */}
+                 {[0, 1, 2].map(i => (
+                    <motion.div
+                      key={i}
+                      className="absolute top-1/2 left-1/2 w-4 h-4 bg-white rounded-full opacity-60 blur-md"
+                      animate={{ y: [-10, -50], x: [0, (i-1)*15], opacity: [0.6, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, delay: i * 0.5, ease: "easeOut" }}
+                    />
+                 ))}
+             </div>
+          ) : (
+            <>
+               <div className="absolute w-1 h-1 bg-amber-800 rounded-full top-1/2 left-1/2 -translate-x-4"></div>
+               <div className="absolute w-1.5 h-1.5 bg-amber-700 rounded-full top-1/2 left-1/2 translate-x-2 translate-y-2"></div>
+               <div className="absolute w-1 h-1 bg-amber-900 rounded-full top-1/2 left-1/2 translate-x-5 -translate-y-4 opacity-50"></div>
+            </>
+          )}
+       </motion.div>
     </div>
   );
 };
@@ -232,6 +259,7 @@ const PhotoUploadModal = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploaderName, setUploaderName] = useState('');
   const [comment, setComment] = useState('');
+  const [rating, setRating] = useState(0); // 0 means no rating selected
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -242,6 +270,7 @@ const PhotoUploadModal = ({
       setPreviewUrl(null);
       setUploaderName('');
       setComment('');
+      setRating(0);
       setIsUploading(false);
     }
   }, [isOpen]);
@@ -256,12 +285,12 @@ const PhotoUploadModal = ({
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || !uploaderName) return;
+    if (!file || !uploaderName || rating === 0) return;
 
     setIsUploading(true);
     try {
       const publicUrl = await storage.uploadPhoto(file);
-      await storage.saveDishPhoto(dishName, publicUrl, uploaderName, comment);
+      await storage.saveDishPhoto(dishName, publicUrl, uploaderName, comment, rating);
       onClose();
     } catch (error) {
       console.error(error);
@@ -286,9 +315,9 @@ const PhotoUploadModal = ({
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="bg-white rounded-3xl w-full max-w-md shadow-2xl relative z-10 overflow-hidden"
+            className="bg-white rounded-3xl w-full max-w-md shadow-2xl relative z-10 overflow-hidden max-h-[90vh] overflow-y-auto"
           >
-            <div className="bg-orange-50 p-6 border-b border-orange-100 flex justify-between items-center">
+            <div className="bg-orange-50 p-6 border-b border-orange-100 flex justify-between items-center sticky top-0 bg-orange-50/95 backdrop-blur z-20">
               <h3 className="font-serif font-bold text-xl text-stone-800">Foto toevoegen bij {dishName}</h3>
               <button onClick={onClose} className="text-stone-400 hover:text-stone-600"><X size={24} /></button>
             </div>
@@ -347,7 +376,29 @@ const PhotoUploadModal = ({
                 onChange={handleFileChange} 
               />
 
-              <div className="space-y-3">
+              <div className="space-y-4">
+                 {/* Star Rating Input */}
+                <div>
+                   <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Beoordeling (Verplicht)</label>
+                   <div className="flex gap-2">
+                     {[1, 2, 3, 4, 5].map((star) => (
+                       <button
+                         key={star}
+                         type="button"
+                         onClick={() => setRating(star)}
+                         className="focus:outline-none transition-transform active:scale-95"
+                       >
+                         <Star 
+                           size={32} 
+                           className={`transition-colors ${star <= rating ? 'fill-amber-400 text-amber-400' : 'text-stone-300'}`} 
+                           strokeWidth={star <= rating ? 0 : 1.5}
+                         />
+                       </button>
+                     ))}
+                   </div>
+                   {rating === 0 && <p className="text-xs text-orange-500 mt-1 font-medium">Selecteer een aantal sterren</p>}
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-1">Jouw Naam (Verplicht)</label>
                   <input 
@@ -373,7 +424,7 @@ const PhotoUploadModal = ({
 
               <button 
                 type="submit" 
-                disabled={!file || !uploaderName || isUploading}
+                disabled={!file || !uploaderName || rating === 0 || isUploading}
                 className="w-full py-3 bg-stone-800 text-white rounded-xl font-semibold hover:bg-orange-600 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
               >
                 {isUploading ? <Loader2 className="animate-spin" /> : <UploadCloud size={20} />}
@@ -445,7 +496,17 @@ const ImageModal = ({ photo, onClose }: { photo: DishPhotoEntry | null, onClose:
                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 text-white flex items-center justify-center font-bold text-lg shadow-sm">
                           {photo.uploaderName.charAt(0).toUpperCase()}
                        </div>
-                       <p className="font-semibold text-stone-800">{photo.uploaderName}</p>
+                       <div className="flex flex-col">
+                          <p className="font-semibold text-stone-800">{photo.uploaderName}</p>
+                          {/* Rating Display */}
+                          {photo.rating > 0 && (
+                            <div className="flex gap-0.5">
+                              {[...Array(5)].map((_, i) => (
+                                <Star key={i} size={12} className={i < photo.rating ? "fill-amber-400 text-amber-400" : "text-stone-300"} strokeWidth={0} />
+                              ))}
+                            </div>
+                          )}
+                       </div>
                     </div>
                   </div>
 
@@ -482,7 +543,7 @@ const ImageModal = ({ photo, onClose }: { photo: DishPhotoEntry | null, onClose:
 const HomePage = () => {
   const [menu, setMenu] = useState<MenuEntry | null>(null);
   const [advice, setAdvice] = useState<AdviceEntry | null>(null);
-  const [burrito, setBurrito] = useState<BurritoEntry | null>(null);
+  const [dailyStatus, setDailyStatus] = useState<DailyStatusEntry | null>(null);
   const [loading, setLoading] = useState(true);
   
   // Photo Upload State
@@ -495,14 +556,14 @@ const HomePage = () => {
   const today = new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   const loadData = async () => {
-    const [latestMenu, latestAdvice, latestBurrito] = await Promise.all([
+    const [latestMenu, latestAdvice, latestDailyStatus] = await Promise.all([
       storage.getLatestMenu(),
       storage.getLatestAdvice(),
-      storage.getLatestBurritoStatus()
+      storage.getLatestDailyStatus()
     ]);
     setMenu(latestMenu);
     setAdvice(latestAdvice);
-    setBurrito(latestBurrito);
+    setDailyStatus(latestDailyStatus);
     setLoading(false);
   };
 
@@ -510,8 +571,8 @@ const HomePage = () => {
     loadData();
     const menuSub = storage.subscribeToMenuUpdates(loadData);
     const adviceSub = storage.subscribeToAdviceUpdates(loadData);
-    const burritoSub = storage.subscribeToBurritoUpdates(loadData);
-    return () => { menuSub.unsubscribe(); adviceSub.unsubscribe(); burritoSub.unsubscribe(); };
+    const dailyStatusSub = storage.subscribeToDailyStatusUpdates(loadData);
+    return () => { menuSub.unsubscribe(); adviceSub.unsubscribe(); dailyStatusSub.unsubscribe(); };
   }, []);
 
   const openPhotoModal = (dish: string) => {
@@ -529,6 +590,7 @@ const HomePage = () => {
       photoUrl: advice.photoUrl,
       uploaderName: "Cyriel",
       comment: advice.advice,
+      rating: 0, // No rating for advice photos usually
       timestamp: advice.timestamp
     });
   };
@@ -610,19 +672,71 @@ const HomePage = () => {
         />
         <ImageModal photo={viewingPhoto} onClose={() => setViewingPhoto(null)} />
 
-        <div className="text-center py-8 md:py-16 relative">
-           <motion.div 
-             initial={{ y: -80, opacity: 0 }}
-             animate={{ y: 0, opacity: 1 }}
-             transition={{ type: "spring", stiffness: 60, damping: 20 }}
-             className="inline-block px-2 relative z-10"
+        <div className="text-center py-12 md:py-20 relative perspective-[2000px]">
+           {/* Background Glow */}
+           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-32 bg-orange-400/20 blur-[60px] rounded-full pointer-events-none" />
+
+           <motion.h1 
+             initial={{ opacity: 0, scale: 0.9 }}
+             animate={{ opacity: 1, scale: 1 }}
+             transition={{ duration: 1 }}
+             className="relative z-10 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 text-5xl md:text-8xl font-serif font-black tracking-tight leading-none"
            >
-             <h1 className="text-4xl md:text-7xl font-serif text-stone-800 mb-6 font-bold leading-tight tracking-tight drop-shadow-sm">
-               Welkom bij <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 bg-[length:200%_auto] animate-[gradient_4s_linear_infinite] block md:inline">Prins Heerlijke Adviezen</span>
-             </h1>
-             <p className="text-base md:text-xl text-stone-600 italic max-w-2xl mx-auto font-medium">Uw dagelijkse bron van culinaire inspiratie en wijs advies</p>
-           </motion.div>
+             {/* Word 1: Prins */}
+             <motion.span 
+               initial={{ opacity: 0, x: -50, rotateY: 90 }}
+               animate={{ opacity: 1, x: 0, rotateY: 0 }}
+               transition={{ type: "spring", bounce: 0.5, duration: 1.5, delay: 0.2 }}
+               className="text-stone-800 drop-shadow-sm"
+             >
+               Prins
+             </motion.span>
+             
+             {/* Word 2: Heerlijke (Gradient) */}
+             <motion.span 
+               initial={{ opacity: 0, y: -50, rotateX: 90 }}
+               animate={{ opacity: 1, y: 0, rotateX: 0 }}
+               transition={{ type: "spring", bounce: 0.5, duration: 1.5, delay: 0.4 }}
+               className="text-transparent bg-clip-text bg-gradient-to-br from-orange-600 via-amber-500 to-orange-700 relative pb-2 md:pb-3"
+             >
+               Heerlijke
+               {/* High-tech sparkle */}
+               <motion.span 
+                 animate={{ opacity: [0, 1, 0], scale: [0.5, 1.2, 0], rotate: [0, 90, 180] }}
+                 transition={{ repeat: Infinity, duration: 2.5, delay: 1 }}
+                 className="absolute -top-1 -right-6 text-amber-400 opacity-0 hidden md:block"
+               >
+                 <Sparkles size={32} strokeWidth={1.5} />
+               </motion.span>
+             </motion.span>
+
+             {/* Word 3: Adviezen */}
+             <motion.span 
+               initial={{ opacity: 0, x: 50, rotateY: -90 }}
+               animate={{ opacity: 1, x: 0, rotateY: 0 }}
+               transition={{ type: "spring", bounce: 0.5, duration: 1.5, delay: 0.6 }}
+               className="text-stone-800 italic"
+             >
+               Adviezen
+             </motion.span>
+           </motion.h1>
+
+           <motion.p 
+             initial={{ opacity: 0, y: 20 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ delay: 1.2, duration: 0.8 }}
+             className="mt-10 text-base md:text-xl text-stone-500 font-medium max-w-2xl mx-auto flex items-center justify-center gap-2"
+           >
+             <span className="hidden md:block w-8 h-[1px] bg-orange-300"></span>
+             <span className="italic">Uw dagelijkse culinaire kompas</span>
+             <span className="hidden md:block w-8 h-[1px] bg-orange-300"></span>
+           </motion.p>
         </div>
+
+        {/* Status Dots Section */}
+        <ScrollReveal delay={0.1}>
+           <StatusDots status={dailyStatus} />
+        </ScrollReveal>
 
         <ScrollReveal delay={0.2}>
           <Card title={`Prins Heerlijk Menu van ${menuDisplayDate}`} icon={Utensils} type="menu" className="relative overflow-hidden">
@@ -654,45 +768,6 @@ const HomePage = () => {
           </Card>
         </ScrollReveal>
         
-        <ScrollReveal delay={0.3}>
-          <Card title="Heeft Job vandaag burritos bij?" icon={Sandwich} type="burrito" className="border-orange-100">
-             {loading ? (
-               <LoadingSpinner />
-             ) : burrito && burrito.formattedDate === today ? (
-               <div className="flex flex-col items-center justify-center pt-8 pb-6 overflow-hidden">
-                 <div className="mb-24 scale-110 md:scale-125 hover:scale-150 transition-transform duration-700 ease-in-out">
-                   <BurritoOven hasBurritos={burrito.hasBurritos} />
-                 </div>
-
-                 <motion.div 
-                   initial={{ opacity: 0, y: 20 }}
-                   animate={{ opacity: 1, y: 0 }}
-                   transition={{ delay: 1.0, duration: 0.8 }}
-                   className={`text-center space-y-2 ${burrito.hasBurritos ? 'text-green-700' : 'text-stone-500'}`}
-                 >
-                   <h3 className="text-2xl md:text-3xl font-serif font-bold">
-                     {burrito.hasBurritos ? "Ja, zeker!" : "Helaas niet..."}
-                   </h3>
-                   <p className="text-stone-500 italic text-lg">
-                      {burrito.hasBurritos ? "Vers uit de oven. Smullen maar! 🎉" : "De oven blijft vandaag leeg. 🥪"}
-                   </p>
-                 </motion.div>
-
-                 <div className="mt-8 text-xs text-stone-400">
-                    Geüpdatet om {new Date(burrito.timestamp).toLocaleTimeString('nl-NL', {hour: '2-digit', minute:'2-digit'})}
-                 </div>
-               </div>
-             ) : (
-               <div className="flex flex-col items-center justify-center py-8 text-stone-400 text-center">
-                  <motion.div animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, duration: 1.5 }}>
-                     <Sandwich size={48} className="mb-4 opacity-30" />
-                  </motion.div>
-                  <p className="text-lg font-serif italic">Job heeft nog niks laten weten.</p>
-               </div>
-             )}
-          </Card>
-        </ScrollReveal>
-
         <ScrollReveal delay={0.4}>
           <Card title="Cyriel's Advies" icon={Sparkles} type="advice" className="bg-gradient-to-br from-white to-amber-50/50">
              {loading ? (
@@ -738,12 +813,12 @@ const HomePage = () => {
   );
 };
 
-const InputPage = ({ type }: { type: 'menu' | 'advice' | 'burritos' }) => {
+const InputPage = ({ type }: { type: 'menu' | 'advice' | 'other' }) => {
   const isMenu = type === 'menu';
   const isAdvice = type === 'advice';
-  const isBurritos = type === 'burritos';
+  const isOther = type === 'other';
   
-  const [isLocked, setIsLocked] = useState(isAdvice || isBurritos);
+  const [isLocked, setIsLocked] = useState(isAdvice);
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
@@ -757,19 +832,27 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' | 'burritos' }) => {
   });
 
   const [adviceContent, setAdviceContent] = useState('');
-  
-  // New state for Advice Photo
   const [advicePhoto, setAdvicePhoto] = useState<File | null>(null);
   const [advicePhotoPreview, setAdvicePhotoPreview] = useState<string | null>(null);
   const adviceFileInputRef = useRef<HTMLInputElement>(null);
   const adviceCameraInputRef = useRef<HTMLInputElement>(null);
 
-  const [burritoStatus, setBurritoStatus] = useState<boolean | null>(null);
+  // New state for Other Options (consolidated)
+  const [dailyStatus, setDailyStatus] = useState<{
+    bengels: boolean | null, 
+    lekkerVreten: boolean | null, 
+    korvel: boolean | null,
+    visdag: boolean | null,
+    burritos: boolean | null
+  }>({
+    bengels: null, lekkerVreten: null, korvel: null, visdag: null, burritos: null
+  });
+
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
-    if (isAdvice || isBurritos) {
+    if (isAdvice) {
       setIsLocked(true);
       setPasswordInput('');
       setAuthError(false);
@@ -780,7 +863,7 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' | 'burritos' }) => {
     setAdviceContent('');
     setAdvicePhoto(null);
     setAdvicePhotoPreview(null);
-    setBurritoStatus(null);
+    setDailyStatus({ bengels: null, lekkerVreten: null, korvel: null, visdag: null, burritos: null });
     setDataLoaded(false);
     setIsNewDay(false);
   }, [type]);
@@ -839,15 +922,22 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' | 'burritos' }) => {
            } else {
              setIsNewDay(true);
            }
-        } else if (isBurritos) {
-           const latestBurrito = await storage.getLatestBurritoStatus();
-           if (latestBurrito && latestBurrito.dateStr === currentValDateStr) {
-             setBurritoStatus(latestBurrito.hasBurritos);
+        } else if (isOther) {
+           const latestStatus = await storage.getLatestDailyStatus();
+           if (latestStatus && latestStatus.dateStr === currentValDateStr) {
+             setDailyStatus({
+                bengels: latestStatus.bengels,
+                lekkerVreten: latestStatus.lekkerVreten,
+                korvel: latestStatus.korvel,
+                visdag: latestStatus.visdag,
+                burritos: latestStatus.burritos
+             });
              setDataLoaded(true);
              setIsNewDay(false);
            } else {
              setIsNewDay(true);
-             setBurritoStatus(null);
+             // Ensure defaults are null
+             setDailyStatus({ bengels: null, lekkerVreten: null, korvel: null, visdag: null, burritos: null });
            }
         }
       } catch (e) {
@@ -858,13 +948,12 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' | 'burritos' }) => {
     };
 
     loadCurrentData();
-  }, [isMenu, isAdvice, isBurritos, isLocked]);
+  }, [isMenu, isAdvice, isOther, isLocked]);
 
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
     let correctPassword = '';
     if (isAdvice) correctPassword = 'millofdastevehood';
-    if (isBurritos) correctPassword = 'Alexander1';
 
     if (passwordInput === correctPassword) {
       setIsLocked(false);
@@ -906,19 +995,20 @@ Prijs: € ${menuData.priceSoup}`;
         await storage.saveMenu(formattedMenu);
       } else if (isAdvice) {
         let photoUrl = undefined;
-        // Check if we already have a preview URL that IS a remote URL (from pre-loading existing data)
         if (advicePhotoPreview && advicePhotoPreview.startsWith('http') && !advicePhoto) {
           photoUrl = advicePhotoPreview;
-        } 
-        // Or if we have a new file to upload
-        else if (advicePhoto) {
+        } else if (advicePhoto) {
           photoUrl = await storage.uploadPhoto(advicePhoto);
         }
-
         await storage.saveAdvice(adviceContent, photoUrl);
-      } else if (isBurritos) {
-        if (burritoStatus === null) return;
-        await storage.saveBurritoStatus(burritoStatus);
+      } else if (isOther) {
+        await storage.saveDailyStatus(
+          dailyStatus.bengels, 
+          dailyStatus.lekkerVreten, 
+          dailyStatus.korvel,
+          dailyStatus.visdag,
+          dailyStatus.burritos
+        );
       }
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2000);
@@ -976,12 +1066,34 @@ Prijs: € ${menuData.priceSoup}`;
   
   if (isMenu) { title = "Voer Prins Heerlijk Menu In"; Icon = Utensils; animType = 'menu'; } 
   else if (isAdvice) { title = "Voer Cyriel's Advies In"; Icon = Coffee; animType = 'advice'; } 
-  else if (isBurritos) { title = "Heeft Job Burritos bij?"; Icon = Sandwich; animType = 'burrito'; }
+  else if (isOther) { title = "Overige Opties"; Icon = ToggleLeft; animType = 'default'; }
   
   let isValid = false;
   if (isMenu) isValid = (menuData.dish1 + menuData.price1 + menuData.dish2 + menuData.price2 + menuData.soup + menuData.priceSoup).length > 0;
   else if (isAdvice) isValid = adviceContent.trim().length > 0;
-  else if (isBurritos) isValid = burritoStatus !== null;
+  else if (isOther) isValid = true; // Can save any state
+
+  const ToggleBlock = ({ label, value, onChange }: { label: string, value: boolean | null, onChange: (val: boolean) => void }) => (
+     <div className="bg-stone-50 p-4 rounded-xl border border-stone-100 flex items-center justify-between">
+        <span className="font-serif font-bold text-stone-700">{label}</span>
+        <div className="flex gap-2">
+           <button 
+             type="button"
+             onClick={() => onChange(true)}
+             className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${value === true ? 'bg-green-500 text-white shadow-md' : 'bg-white text-stone-400 border border-stone-200'}`}
+           >
+             JA
+           </button>
+           <button 
+             type="button"
+             onClick={() => onChange(false)}
+             className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${value === false ? 'bg-red-500 text-white shadow-md' : 'bg-white text-stone-400 border border-stone-200'}`}
+           >
+             NEE
+           </button>
+        </div>
+     </div>
+  );
 
   return (
     <PageTransition>
@@ -1109,15 +1221,34 @@ Prijs: € ${menuData.priceSoup}`;
                 </ScrollReveal>
               )}
 
-              {isBurritos && (
+              {isOther && (
                 <ScrollReveal delay={0.2}>
-                  <div className="flex flex-col md:flex-row gap-4 justify-center items-center py-8">
-                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} type="button" onClick={() => setBurritoStatus(true)} className={`w-40 h-40 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-300 border-2 ${burritoStatus === true ? 'bg-green-500 text-white border-green-600 shadow-xl' : 'bg-white text-stone-400 border-stone-200 hover:border-green-300 hover:text-green-500'}`}>
-                       <span className="text-3xl font-bold">JA</span><span className="text-sm opacity-80">Feest!</span>
-                    </motion.button>
-                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} type="button" onClick={() => setBurritoStatus(false)} className={`w-40 h-40 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-300 border-2 ${burritoStatus === false ? 'bg-red-500 text-white border-red-600 shadow-xl' : 'bg-white text-stone-400 border-stone-200 hover:border-red-300 hover:text-red-500'}`}>
-                       <span className="text-3xl font-bold">NEE</span><span className="text-sm opacity-80">Helaas...</span>
-                    </motion.button>
+                  <div className="space-y-4">
+                     <ToggleBlock 
+                        label="Bengels" 
+                        value={dailyStatus.bengels} 
+                        onChange={(val) => setDailyStatus(prev => ({...prev, bengels: val}))} 
+                     />
+                     <ToggleBlock 
+                        label="Lekker vreten op kantoor?" 
+                        value={dailyStatus.lekkerVreten} 
+                        onChange={(val) => setDailyStatus(prev => ({...prev, lekkerVreten: val}))} 
+                     />
+                     <ToggleBlock 
+                        label="Korvel" 
+                        value={dailyStatus.korvel} 
+                        onChange={(val) => setDailyStatus(prev => ({...prev, korvel: val}))} 
+                     />
+                     <ToggleBlock 
+                        label="Visdag" 
+                        value={dailyStatus.visdag} 
+                        onChange={(val) => setDailyStatus(prev => ({...prev, visdag: val}))} 
+                     />
+                     <ToggleBlock 
+                        label="Heeft Job Burritos bij?" 
+                        value={dailyStatus.burritos} 
+                        onChange={(val) => setDailyStatus(prev => ({...prev, burritos: val}))} 
+                     />
                   </div>
                 </ScrollReveal>
               )}
@@ -1161,6 +1292,7 @@ const HistoryItem = ({ item, photos, onPhotoClick }: { item: any, photos: DishPh
         photoUrl: advicePhotoUrl,
         uploaderName: "Cyriel",
         comment: (item as AdviceEntry).advice,
+        rating: 0,
         timestamp: item.timestamp
       });
     }
@@ -1208,6 +1340,13 @@ const HistoryItem = ({ item, photos, onPhotoClick }: { item: any, photos: DishPh
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-end text-white text-xs">
                        <p className="font-bold">{photo.dishSection}</p>
                        <p className="opacity-80 truncate">door {photo.uploaderName}</p>
+                       {/* Overlay Rating */}
+                       {photo.rating > 0 && (
+                          <div className="flex gap-0.5 mt-1">
+                             <Star size={10} className="fill-amber-400 text-amber-400" strokeWidth={0} />
+                             <span className="font-bold text-[10px]">{photo.rating}</span>
+                          </div>
+                       )}
                     </div>
                  </motion.div>
                ))}
@@ -1292,7 +1431,8 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/input/menu" element={<InputPage type="menu" />} />
           <Route path="/input/advice" element={<InputPage type="advice" />} />
-          <Route path="/input/burritos" element={<InputPage type="burritos" />} />
+          {/* Burritos removed as standalone, integrated into 'other' */}
+          <Route path="/input/other" element={<InputPage type="other" />} />
           <Route path="/history/menu" element={<HistoryPage type="menu" />} />
           <Route path="/history/advice" element={<HistoryPage type="advice" />} />
           <Route path="*" element={<Navigate to="/" replace />} />

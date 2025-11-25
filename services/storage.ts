@@ -1,5 +1,6 @@
+
 import { supabase } from './supabase';
-import { MenuEntry, AdviceEntry, BurritoEntry, DishPhotoEntry } from '../types';
+import { MenuEntry, AdviceEntry, BurritoEntry, DishPhotoEntry, DailyStatusEntry } from '../types';
 
 // --- Mappers ---
 // Map database snake_case to TypeScript camelCase
@@ -29,6 +30,18 @@ const mapBurritoFromDB = (data: any): BurritoEntry => ({
   timestamp: data.timestamp
 });
 
+const mapDailyStatusFromDB = (data: any): DailyStatusEntry => ({
+  id: data.id,
+  dateStr: data.date_str,
+  formattedDate: data.formatted_date,
+  bengels: data.bengels,
+  lekkerVreten: data.lekker_vreten,
+  korvel: data.korvel,
+  visdag: data.visdag,
+  burritos: data.burritos,
+  timestamp: data.timestamp
+});
+
 const mapPhotoFromDB = (data: any): DishPhotoEntry => ({
   id: data.id,
   dateStr: data.date_str,
@@ -36,6 +49,7 @@ const mapPhotoFromDB = (data: any): DishPhotoEntry => ({
   photoUrl: data.photo_url,
   uploaderName: data.uploader_name,
   comment: data.comment,
+  rating: data.rating || 0, // Default to 0 if null (legacy support)
   timestamp: data.timestamp
 });
 
@@ -91,6 +105,7 @@ export const getLatestAdvice = async (): Promise<AdviceEntry | null> => {
   return data ? mapAdviceFromDB(data) : null;
 };
 
+// Deprecated but kept for type safety if needed elsewhere
 export const getLatestBurritoStatus = async (): Promise<BurritoEntry | null> => {
   const { data, error } = await supabase
     .from('burritos')
@@ -101,6 +116,18 @@ export const getLatestBurritoStatus = async (): Promise<BurritoEntry | null> => 
 
   if (error) return null;
   return data ? mapBurritoFromDB(data) : null;
+};
+
+export const getLatestDailyStatus = async (): Promise<DailyStatusEntry | null> => {
+  const { data, error } = await supabase
+    .from('daily_status')
+    .select('*')
+    .order('timestamp', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error) return null;
+  return data ? mapDailyStatusFromDB(data) : null;
 };
 
 export const getDishPhotos = async (dateStr: string): Promise<DishPhotoEntry[]> => {
@@ -199,6 +226,36 @@ export const saveBurritoStatus = async (hasBurritos: boolean) => {
   }
 };
 
+export const saveDailyStatus = async (
+  bengels: boolean | null, 
+  lekkerVreten: boolean | null, 
+  korvel: boolean | null,
+  visdag: boolean | null,
+  burritos: boolean | null
+) => {
+  const { dateStr, formattedDate, timestamp } = getTimestampAndDate();
+
+  const { error } = await supabase
+    .from('daily_status')
+    .insert([
+      { 
+        date_str: dateStr,
+        formatted_date: formattedDate,
+        bengels: bengels,
+        lekker_vreten: lekkerVreten,
+        korvel: korvel,
+        visdag: visdag,
+        burritos: burritos,
+        timestamp: timestamp
+      }
+    ]);
+
+  if (error) {
+    console.error("Error saving daily status:", error);
+    throw error;
+  }
+};
+
 export const uploadPhoto = async (file: File): Promise<string> => {
   const fileExt = file.name.split('.').pop();
   const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -219,9 +276,7 @@ export const uploadPhoto = async (file: File): Promise<string> => {
   return data.publicUrl;
 };
 
-export const saveDishPhoto = async (dishSection: string, photoUrl: string, uploaderName: string, comment: string) => {
-  // We use the date from when the menu was created ideally, but for now we link it to "today" logic
-  // or pass the dateStr explicitly. For simplicity on the homepage, we use "Today".
+export const saveDishPhoto = async (dishSection: string, photoUrl: string, uploaderName: string, comment: string, rating: number) => {
   const { dateStr, timestamp } = getTimestampAndDate();
 
   const { error } = await supabase
@@ -233,6 +288,7 @@ export const saveDishPhoto = async (dishSection: string, photoUrl: string, uploa
         photo_url: photoUrl,
         uploader_name: uploaderName,
         comment: comment,
+        rating: rating,
         timestamp: timestamp
       }
     ]);
@@ -263,6 +319,13 @@ export const subscribeToBurritoUpdates = (callback: () => void) => {
   return supabase
     .channel('burritos_channel')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'burritos' }, callback)
+    .subscribe();
+};
+
+export const subscribeToDailyStatusUpdates = (callback: () => void) => {
+  return supabase
+    .channel('daily_status_channel')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'daily_status' }, callback)
     .subscribe();
 };
 
