@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Utensils, ChefHat, History, Home, Coffee, ChevronDown, PenTool, Menu, X, ToggleLeft } from 'lucide-react';
+import { Utensils, ChefHat, History, Home, Coffee, ChevronDown, PenTool, Menu, X, ToggleLeft, ShoppingBag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Desktop Components ---
@@ -175,6 +175,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-2">
               <NavLink to="/" icon={Home}>Home</NavLink>
+              <NavLink to="/bengels" icon={ShoppingBag}>Bengels</NavLink>
               
               <Dropdown
                 title="Menu Invoeren"
@@ -230,6 +231,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           >
             <div className="flex-grow max-w-md mx-auto w-full space-y-8">
               <MobileNavLink to="/" icon={Home} onClick={() => setIsMobileMenuOpen(false)}>Home</MobileNavLink>
+              <MobileNavLink to="/bengels" icon={ShoppingBag} onClick={() => setIsMobileMenuOpen(false)}>Bengels Menu</MobileNavLink>
               
               <div className="w-full h-px bg-gradient-to-r from-transparent via-stone-200 to-transparent my-4" />
               

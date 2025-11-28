@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { MenuEntry, AdviceEntry, BurritoEntry, DishPhotoEntry, DailyStatusEntry } from './types';
 import * as storage from './services/storage';
 import { motion, AnimatePresence, useScroll, useTransform, Variants } from 'framer-motion';
-import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup, Lock, Unlock, Loader2, CheckCircle2, Sandwich, PenTool, Camera, Image as ImageIcon, UploadCloud, X, ToggleLeft, ToggleRight, Star } from 'lucide-react';
+import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup, Lock, Unlock, Loader2, CheckCircle2, Sandwich, PenTool, Camera, Image as ImageIcon, UploadCloud, X, ToggleLeft, ToggleRight, Star, ShoppingBag, ExternalLink } from 'lucide-react';
 
 // --- Shared Components ---
 
@@ -300,7 +301,7 @@ const PhotoUploadModal = ({
     }
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -434,12 +435,13 @@ const PhotoUploadModal = ({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 
 const ImageModal = ({ photo, onClose }: { photo: DishPhotoEntry | null, onClose: () => void }) => {
-  return (
+  return createPortal(
     <AnimatePresence>
       {photo && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8" onClick={onClose}>
@@ -463,6 +465,8 @@ const ImageModal = ({ photo, onClose }: { photo: DishPhotoEntry | null, onClose:
                  src={photo.photoUrl} 
                  alt={photo.dishSection} 
                  className="w-full h-full object-contain"
+                 loading="lazy"
+                 decoding="async"
                />
                <button 
                  onClick={onClose} 
@@ -534,7 +538,174 @@ const ImageModal = ({ photo, onClose }: { photo: DishPhotoEntry | null, onClose:
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
+  );
+};
+
+// --- Bengels Page Component ---
+
+const BengelsPage = () => {
+  const menuCategories = [
+    {
+      title: "Koude Broodjes",
+      anchor: "#290996",
+      products: [
+        { name: "Eiersalade", price: "5,50", img: "https://ntf.blob.core.windows.net/pictures/2-2358b910-236e-4a3a-91b5-8d2dcc2556bf.jpg" },
+        { name: "Tonijnsalade", price: "6,00", img: "https://ntf.blob.core.windows.net/pictures/2-bc9f75a5-2921-4421-b8f5-067a050b6cd5.jpg" },
+        { name: "Avocado, ei, tomaat", price: "6,00", img: "https://ntf.blob.core.windows.net/pictures/2-16141cb4-6b3f-46d2-a8f3-cc9ffbe4ff6f.jpg" },
+        { name: "Caprese", price: "6,00", img: "https://ntf.blob.core.windows.net/pictures/2-16b6eecd-adb7-49fb-8160-42a84c07e434.jpg" },
+        { name: "Gezond", price: "6,00", img: "https://ntf.blob.core.windows.net/pictures/2-04d891fe-79a2-47a6-ad85-6dc236d7b970.jpg" },
+        { name: "Carpaccio", price: "6,50", img: "https://ntf.blob.core.windows.net/pictures/2-691aabc5-c917-4c55-aa6e-009b50bb98bb.jpg" },
+        { name: "Kipsalade", price: "6,00", img: "https://ntf.blob.core.windows.net/pictures/2-3a93d729-48cd-41dc-938f-9e359a5262a3.jpg" },
+        { name: "Zachtgegaarde kip", price: "7,00", img: "https://ntf.blob.core.windows.net/pictures/2-b35aaa71-c26d-4260-976a-dfbdfdbcd5ef.jpg" },
+        { name: "Gerookte zalm", price: "7,50", img: "https://ntf.blob.core.windows.net/pictures/2-953ab929-4916-43e4-93af-7bdf7dc46f17.jpg" }
+      ]
+    },
+    {
+      title: "Warme Broodjes",
+      anchor: "#290997",
+      products: [
+        { name: "Flatbread kaas", price: "4,50", img: "https://ntf.blob.core.windows.net/pictures/2-90be51f9-f0ae-4ca8-845e-f45d760d8b42.jpg" },
+        { name: "Flatbread ham/kaas", price: "5,00", img: "https://ntf.blob.core.windows.net/pictures/2-52318a00-fc27-4c29-a232-86bb8858287f.jpg" },
+        { name: "Flatbread caprese", price: "6,00", img: "https://ntf.blob.core.windows.net/pictures/2-49b1be7c-55a5-4bbc-87c1-a99ec91bb4b4.jpg" },
+        { name: "Flatbread kip", price: "6,00", img: "https://ntf.blob.core.windows.net/pictures/2-058fccec-177a-42a9-abd6-ebe5e3df909b.jpg" },
+        { name: "Flatbread rendang", price: "6,00", img: "https://ntf.blob.core.windows.net/pictures/2-21c12ccc-b7f2-4b4d-bb69-0ed1768a4d36.jpg" },
+        { name: "Flatbread Tuna melt", price: "6,00", img: "https://ntf.blob.core.windows.net/pictures/2-4c410609-e987-4d72-b016-831d285f6142.jpg" }
+      ]
+    },
+    {
+      title: "Diversen",
+      anchor: "#290998",
+      products: [
+        { name: "Salade Caprese", price: "8,00", img: "https://ntf.blob.core.windows.net/pictures/2-33862cb8-97a6-43ea-8dee-71e41237e616.jpg" },
+        { name: "Salade Carpaccio", price: "8,50", img: "https://ntf.blob.core.windows.net/pictures/2-ec262f65-1087-4d98-be38-9ec8ac50a9ad.jpg" },
+        { name: "Salade Kip Caesar", price: "8,50", img: "https://ntf.blob.core.windows.net/pictures/2-9054f82e-87c3-4d2c-998b-2930535ed364.jpg" },
+        { name: "Soep van de dag", price: "3,50", img: "https://ntf.blob.core.windows.net/pictures/2-d0119a22-2572-4ca2-9051-ebd1eb927ac5.jpg" }
+      ]
+    },
+    {
+      title: "Pastry",
+      anchor: "#290999",
+      products: [
+        { name: "Chocolate cookie", price: "2,80", img: "https://ntf.blob.core.windows.net/pictures/2-23d84fb3-05bd-4e13-b216-fd27118ae79b.jpg" },
+        { name: "Bananenbrood", price: "3,20", img: "https://ntf.blob.core.windows.net/pictures/2-c601f5e3-eba4-41f3-a623-ebd29a9e0c17.jpg" },
+        { name: "Croissant", price: "2,50", img: "https://ntf.blob.core.windows.net/pictures/2-27702778-5615-4798-a9a1-4d1d8b9fac17.jpg" },
+        { name: "Notenbar", price: "2,50", img: "https://ntf.blob.core.windows.net/pictures/2-6de91699-3651-4bb7-9233-c90a38ccace0.jpg" },
+        { name: "Brownie", price: "3,00", img: "https://ntf.blob.core.windows.net/pictures/2-2d1d0497-5509-49e5-98c6-3862a322e3ea.jpg" },
+        { name: "Suikerwafel", price: "3,00", img: "https://ntf.blob.core.windows.net/pictures/2-05ff418a-071a-40fc-a407-f62fda690530.jpg" },
+        { name: "Muffin pistache", price: "3,00", img: "https://ntf.blob.core.windows.net/pictures/2-aa6d258c-5bf7-47bf-9d49-325f4b9bdc0c.jpg" }
+      ]
+    },
+    {
+      title: "Lunchboxen",
+      anchor: "#291148",
+      products: [
+        { name: "Lunchbox (per persoon)", price: "7,50", img: "https://ntf.blob.core.windows.net/pictures/2-f22a75a0-ba44-451f-b75a-4ea0a410882c.jpg" },
+        { name: "Lunchbox incl. sappen", price: "10,00", img: "https://ntf.blob.core.windows.net/pictures/2-f22a75a0-ba44-451f-b75a-4ea0a410882c.jpg" },
+        { name: "Lunchbox incl. zoetigheid", price: "10,00", img: "https://ntf.blob.core.windows.net/pictures/2-f22a75a0-ba44-451f-b75a-4ea0a410882c.jpg" },
+        { name: "Lunchbox de luxe", price: "12,50", img: "https://ntf.blob.core.windows.net/pictures/2-f22a75a0-ba44-451f-b75a-4ea0a410882c.jpg" }
+      ]
+    },
+    {
+      title: "Dranken",
+      anchor: "#291000",
+      products: [
+        { name: "Fruitsap sinaasappel-aardbei", price: "3,50", img: "https://ntf.blob.core.windows.net/pictures/2-f56b7025-7e47-4a7c-b3fb-b7222363d6d9.jpg" },
+        { name: "Flesje jus", price: "3,00", img: "https://ntf.blob.core.windows.net/pictures/2-02d3e754-8dd5-4e8f-98e3-0617bd6e70af.jpg" },
+        { name: "Smoothie mango-passie", price: "3,50", img: "https://ntf.blob.core.windows.net/pictures/2-6d576909-c97e-466d-af55-367b8564a729.jpg" },
+        { name: "Koffie", price: "2,40", img: "https://ntf.blob.core.windows.net/pictures/2-01f00481-4d23-46b2-9393-5c576822507e.jpg" },
+        { name: "Cappuccino", price: "2,90", img: "https://ntf.blob.core.windows.net/pictures/2-01f00481-4d23-46b2-9393-5c576822507e.jpg" },
+        { name: "Latte macchiato", price: "3,10", img: "https://ntf.blob.core.windows.net/pictures/2-01f00481-4d23-46b2-9393-5c576822507e.jpg" },
+        { name: "Koffie verkeerd", price: "3,10", img: "https://ntf.blob.core.windows.net/pictures/2-01f00481-4d23-46b2-9393-5c576822507e.jpg" },
+        { name: "Chai Latte", price: "3,50", img: "https://ntf.blob.core.windows.net/pictures/2-448a52bc-122c-4dbc-962c-b1ab7ab6434c.jpg" },
+        { name: "Coca cola (33cl)", price: "2,50", img: "https://ntf.blob.core.windows.net/pictures/2-128bc045-fc9e-4fb8-a84f-20fad939434b.jpg" },
+        { name: "Coca cola zero (33cl)", price: "2,50", img: "https://ntf.blob.core.windows.net/pictures/2-5bfd73e3-3174-45d7-9955-228698afedb0.jpg" },
+        { name: "Fanta cassis (33cl)", price: "2,50", img: "https://ntf.blob.core.windows.net/pictures/2-96a0e993-6d2f-41bf-820e-bb9a934d1f63.jpg" },
+        { name: "Fanta orange (33cl)", price: "2,50", img: "https://ntf.blob.core.windows.net/pictures/2-5f785312-9cdd-49d1-994e-4cba8be5bf19.jpg" },
+        { name: "Fuze tea green (33cl)", price: "2,50", img: "https://ntf.blob.core.windows.net/pictures/2-6508aa5d-015c-407a-a56d-c6e0db95b0fe.jpg" },
+        { name: "Fuze tea sparkling (33cl)", price: "2,50", img: "https://ntf.blob.core.windows.net/pictures/2-7f0ac047-46ad-449a-9b70-65a4189333a5.jpg" },
+        { name: "Sprite (33cl)", price: "2,50", img: "https://ntf.blob.core.windows.net/pictures/2-6ea54f28-fbb4-4a7d-89d0-f0af52de85c8.jpg" },
+        { name: "Red Bull", price: "3,50", img: "https://ntf.blob.core.windows.net/pictures/2-352a218c-fd98-4e31-afd6-e7c696f14d03.jpg" }
+      ]
+    }
+  ];
+
+  const handleOrder = (anchor: string) => {
+    // Navigate to the main bengels ordering page, ideally to the specific section
+    window.open(`https://www.e-food.nl/skin/basic/tilburg/bengels-tilburg${anchor}`, '_blank');
+  };
+
+  return (
+    <PageTransition>
+      <div className="space-y-12 pb-12">
+        <div className="text-center py-10">
+           <motion.div 
+             initial={{ opacity: 0, y: -20 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ duration: 0.8 }}
+             className="inline-block"
+           >
+              <h1 className="text-4xl md:text-6xl font-serif font-black tracking-tight text-stone-800 mb-4">
+                Bengels <span className="text-transparent bg-clip-text bg-gradient-to-br from-orange-500 to-amber-600">Menu</span>
+              </h1>
+              <div className="h-1 w-24 bg-orange-400 mx-auto rounded-full" />
+           </motion.div>
+        </div>
+
+        {menuCategories.map((category, idx) => (
+          <ScrollReveal key={idx} delay={idx * 0.1}>
+            <div className="mb-12 last:mb-0">
+               <h2 className="text-2xl font-serif font-bold text-stone-800 mb-6 flex items-center gap-3 border-b border-orange-100 pb-2">
+                 <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
+                    <Utensils size={16} />
+                 </div>
+                 {category.title}
+               </h2>
+               
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {category.products.map((product, pIdx) => (
+                    <motion.div 
+                      key={pIdx}
+                      whileHover={{ y: -5 }}
+                      className="bg-white rounded-2xl overflow-hidden shadow-sm border border-stone-100 hover:shadow-lg transition-all flex flex-col h-full"
+                    >
+                       <div className="h-48 overflow-hidden bg-stone-50 relative group">
+                          <img 
+                            src={product.img} 
+                            alt={product.name} 
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                       </div>
+                       
+                       <div className="p-5 flex flex-col flex-1">
+                          <div className="flex justify-between items-start mb-2">
+                             <h3 className="font-bold text-lg text-stone-800 font-serif leading-tight">{product.name}</h3>
+                             <span className="font-bold text-orange-600 shrink-0">€ {product.price}</span>
+                          </div>
+                          <div className="mt-auto pt-4">
+                             <motion.button
+                               whileHover={{ scale: 1.02 }}
+                               whileTap={{ scale: 0.98 }}
+                               onClick={() => handleOrder(category.anchor)}
+                               className="w-full py-2 bg-stone-800 text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 hover:bg-orange-600 transition-colors"
+                             >
+                                <ExternalLink size={14} />
+                                Bestel bij Bengels
+                             </motion.button>
+                          </div>
+                       </div>
+                    </motion.div>
+                  ))}
+               </div>
+            </div>
+          </ScrollReveal>
+        ))}
+      </div>
+    </PageTransition>
   );
 };
 
@@ -784,7 +955,7 @@ const HomePage = () => {
                    <motion.div 
                      whileHover={{ scale: 1.02 }}
                      onClick={handleAdvicePhotoClick}
-                     className="mt-6 mx-auto max-w-md rounded-2xl overflow-hidden shadow-lg border-2 border-white/50 cursor-pointer"
+                     className="mt-6 mx-auto max-w-md rounded-2xl overflow-hidden shadow-sm border-2 border-white/50 cursor-pointer"
                    >
                      <img src={advice.photoUrl} alt="Cyriel's Advies" className="w-full h-auto object-cover" />
                    </motion.div>
@@ -1316,7 +1487,7 @@ const HistoryItem = ({ item, photos, onPhotoClick }: { item: any, photos: DishPh
                 onClick={handleAdvicePhotoClick}
                 className="mt-4 max-w-xs rounded-lg overflow-hidden shadow-sm cursor-pointer border border-stone-200"
               >
-                 <img src={advicePhotoUrl} alt="Advies Foto" className="w-full h-auto object-cover" />
+                 <img src={advicePhotoUrl} alt="Advies Foto" className="w-full h-auto object-cover" loading="lazy" decoding="async" />
               </motion.div>
             )}
           </div>
@@ -1336,7 +1507,7 @@ const HistoryItem = ({ item, photos, onPhotoClick }: { item: any, photos: DishPh
                    onClick={() => onPhotoClick(photo)}
                    className="relative group rounded-lg overflow-hidden shadow-sm aspect-square cursor-pointer"
                  >
-                    <img src={photo.photoUrl} alt={photo.dishSection} className="w-full h-full object-cover" />
+                    <img src={photo.photoUrl} alt={photo.dishSection} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-end text-white text-xs">
                        <p className="font-bold">{photo.dishSection}</p>
                        <p className="opacity-80 truncate">door {photo.uploaderName}</p>
@@ -1374,15 +1545,17 @@ const HistoryPage = ({ type }: { type: 'menu' | 'advice' }) => {
     const fetchHistory = async () => {
       setLoading(true);
       try {
-        const raw = type === 'menu' ? await storage.getMenus() : await storage.getAdvices();
-        setItems(storage.getUniqueHistory(raw as any));
-
         if (type === 'menu') {
-           const uniqueItems = storage.getUniqueHistory(raw as any);
-           const photoPromises = uniqueItems.map(item => storage.getDishPhotos(item.dateStr));
-           const photosResults = await Promise.all(photoPromises);
-           const flatPhotos = photosResults.flat();
-           setAllPhotos(flatPhotos);
+           // Optimized fetch: Get menus and ALL photos in parallel to avoid N+1 problem
+           const [rawMenus, allPhotosDB] = await Promise.all([
+             storage.getMenus(),
+             storage.getAllDishPhotos()
+           ]);
+           setItems(storage.getUniqueHistory(rawMenus));
+           setAllPhotos(allPhotosDB);
+        } else {
+           const rawAdvice = await storage.getAdvices();
+           setItems(storage.getUniqueHistory(rawAdvice));
         }
       } catch (e) { console.error(e); } finally { setLoading(false); }
     };
@@ -1429,6 +1602,7 @@ export default function App() {
       <Layout>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/bengels" element={<BengelsPage />} />
           <Route path="/input/menu" element={<InputPage type="menu" />} />
           <Route path="/input/advice" element={<InputPage type="advice" />} />
           {/* Burritos removed as standalone, integrated into 'other' */}

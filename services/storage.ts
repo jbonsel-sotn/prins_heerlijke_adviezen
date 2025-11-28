@@ -144,6 +144,19 @@ export const getDishPhotos = async (dateStr: string): Promise<DishPhotoEntry[]> 
   return (data || []).map(mapPhotoFromDB);
 };
 
+export const getAllDishPhotos = async (): Promise<DishPhotoEntry[]> => {
+  const { data, error } = await supabase
+    .from('dish_photos')
+    .select('*')
+    .order('timestamp', { ascending: false });
+
+  if (error) {
+    console.error("Error fetching all photos:", error);
+    return [];
+  }
+  return (data || []).map(mapPhotoFromDB);
+};
+
 // --- Save Functions ---
 
 const getTimestampAndDate = () => {
@@ -256,24 +269,70 @@ export const saveDailyStatus = async (
   }
 };
 
+// Helper: Compress Image to max 1200px width and 70% JPEG quality
+const compressImage = (file: File): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > MAX_WIDTH) {
+          height *= MAX_WIDTH / width;
+          width = MAX_WIDTH;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Compression failed'));
+        }, 'image/jpeg', 0.7); // 70% quality
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 export const uploadPhoto = async (file: File): Promise<string> => {
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-  const filePath = `${fileName}`;
+  try {
+    // Compress image before upload
+    const compressedBlob = await compressImage(file);
+    const fileExt = 'jpg'; // We force jpg conversion
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = `${fileName}`;
 
-  const { error: uploadError } = await supabase.storage
-    .from('menu-photos')
-    .upload(filePath, file);
+    const { error: uploadError } = await supabase.storage
+      .from('menu-photos')
+      .upload(filePath, compressedBlob, { contentType: 'image/jpeg' });
 
-  if (uploadError) {
-    throw uploadError;
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data } = supabase.storage
+      .from('menu-photos')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  } catch (error) {
+    console.error("Error uploading photo:", error);
+    throw error;
   }
-
-  const { data } = supabase.storage
-    .from('menu-photos')
-    .getPublicUrl(filePath);
-
-  return data.publicUrl;
 };
 
 export const saveDishPhoto = async (dishSection: string, photoUrl: string, uploaderName: string, comment: string, rating: number) => {
