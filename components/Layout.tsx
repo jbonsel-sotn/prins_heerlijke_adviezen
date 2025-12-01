@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Utensils, ChefHat, History, Home, Coffee, ChevronDown, PenTool, Menu, X, ToggleLeft, ShoppingBag } from 'lucide-react';
+import { Utensils, ChefHat, History, Home, Coffee, ChevronDown, PenTool, Menu, X, ToggleLeft, ShoppingBag, Store, Trophy, List, Bot } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Desktop Components ---
@@ -178,12 +177,22 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               <NavLink to="/bengels" icon={ShoppingBag}>Bengels</NavLink>
               
               <Dropdown
+                title="Korvel Review"
+                icon={Store}
+                items={[
+                  { label: "Alle Reviews", to: "/korvel/reviews", icon: List },
+                  { label: "Ranking", to: "/korvel/ranking", icon: Trophy },
+                ]}
+              />
+              
+              <Dropdown
                 title="Menu Invoeren"
                 icon={PenTool}
                 items={[
                   { label: "Prins Heerlijk Menu", to: "/input/menu", icon: Utensils },
                   { label: "Cyriel's Advies", to: "/input/advice", icon: Coffee },
                   { label: "Overige Opties", to: "/input/other", icon: ToggleLeft },
+                  { label: "Korvel Review", to: "/input/korvel", icon: Store },
                 ]}
               />
 
@@ -193,6 +202,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                 items={[
                   { label: "Prins Heerlijk Menu", to: "/history/menu", icon: Utensils },
                   { label: "Cyriel's Adviezen", to: "/history/advice", icon: Coffee },
+                  { label: "AI Adviezen", to: "/history/ai", icon: Bot },
                 ]}
               />
             </div>
@@ -234,11 +244,19 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               <MobileNavLink to="/bengels" icon={ShoppingBag} onClick={() => setIsMobileMenuOpen(false)}>Bengels Menu</MobileNavLink>
               
               <div className="w-full h-px bg-gradient-to-r from-transparent via-stone-200 to-transparent my-4" />
+
+              <MobileSection title="Korvel Review">
+                <MobileNavLink to="/korvel/reviews" icon={List} onClick={() => setIsMobileMenuOpen(false)}>Alle Reviews</MobileNavLink>
+                <MobileNavLink to="/korvel/ranking" icon={Trophy} onClick={() => setIsMobileMenuOpen(false)}>Ranking</MobileNavLink>
+              </MobileSection>
+              
+              <div className="w-full h-px bg-gradient-to-r from-transparent via-stone-200 to-transparent my-4" />
               
               <MobileSection title="Menu Invoeren">
                 <MobileNavLink to="/input/menu" icon={Utensils} onClick={() => setIsMobileMenuOpen(false)}>Prins Heerlijk Menu</MobileNavLink>
                 <MobileNavLink to="/input/advice" icon={Coffee} onClick={() => setIsMobileMenuOpen(false)}>Cyriel's Advies</MobileNavLink>
                 <MobileNavLink to="/input/other" icon={ToggleLeft} onClick={() => setIsMobileMenuOpen(false)}>Overige Opties</MobileNavLink>
+                <MobileNavLink to="/input/korvel" icon={Store} onClick={() => setIsMobileMenuOpen(false)}>Nieuwe Korvel Review</MobileNavLink>
               </MobileSection>
 
               <div className="w-full h-px bg-gradient-to-r from-transparent via-stone-200 to-transparent my-4" />
@@ -246,6 +264,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               <MobileSection title="Historie">
                 <MobileNavLink to="/history/menu" icon={History} onClick={() => setIsMobileMenuOpen(false)}>Menu Historie</MobileNavLink>
                 <MobileNavLink to="/history/advice" icon={History} onClick={() => setIsMobileMenuOpen(false)}>Advies Historie</MobileNavLink>
+                <MobileNavLink to="/history/ai" icon={Bot} onClick={() => setIsMobileMenuOpen(false)}>AI Adviezen</MobileNavLink>
               </MobileSection>
             </div>
 
@@ -270,7 +289,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       <footer className="bg-white/50 backdrop-blur-sm border-t border-orange-100 mt-auto relative z-0">
         <div className="max-w-6xl mx-auto px-4 py-8 text-center text-stone-500 text-sm">
           <p className="font-serif italic text-lg text-orange-800/60 mb-2">"Smakelijk eten en wijs advies"</p>
-          <p>&copy; {new Date().getFullYear()} Prins Heerlijke Adviezen.</p>
+          <p>&copy; {new Date().getFullYear()} JBO 007.</p>
         </div>
       </footer>
     </div>

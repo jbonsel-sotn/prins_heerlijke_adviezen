@@ -29,6 +29,16 @@ create table if not exists advices (
 -- UPDATE: Voeg foto kolom toe aan adviezen tabel (als je dit later toevoegt)
 alter table advices add column if not exists photo_url text;
 
+-- Tabel voor AI Adviezen aanmaken (NIEUW)
+create table if not exists ai_advices (
+  id uuid default gen_random_uuid() primary key,
+  date_str text not null,
+  formatted_date text not null,
+  advice text not null,
+  timestamp bigint not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
 -- Tabel voor Burritos aanmaken
 create table if not exists burritos (
   id uuid default gen_random_uuid() primary key,
@@ -72,6 +82,22 @@ create table if not exists dish_photos (
 -- UPDATE: Voeg rating kolom toe als tabel al bestaat
 alter table dish_photos add column if not exists rating integer default 0;
 
+-- Tabel voor Korvelseweg Reviews
+create table if not exists korvel_reviews (
+  id uuid default gen_random_uuid() primary key,
+  establishment text not null,
+  expert text not null,
+  scores jsonb not null,
+  total_score numeric not null,
+  order_details text,
+  date_str text not null,
+  timestamp bigint not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- UPDATE: Voeg foto kolom toe aan korvel_reviews tabel
+alter table korvel_reviews add column if not exists photo_url text;
+
 -- Zet Realtime aan
 do $$
 begin
@@ -81,6 +107,9 @@ begin
   if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'advices') then
     alter publication supabase_realtime add table advices;
   end if;
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'ai_advices') then
+    alter publication supabase_realtime add table ai_advices;
+  end if;
   if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'burritos') then
     alter publication supabase_realtime add table burritos;
   end if;
@@ -89,6 +118,9 @@ begin
   end if;
   if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'daily_status') then
     alter publication supabase_realtime add table daily_status;
+  end if;
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'korvel_reviews') then
+    alter publication supabase_realtime add table korvel_reviews;
   end if;
 end;
 $$;

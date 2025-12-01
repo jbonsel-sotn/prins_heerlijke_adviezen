@@ -1,12 +1,12 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
-import { MenuEntry, AdviceEntry, BurritoEntry, DishPhotoEntry, DailyStatusEntry } from './types';
+import { MenuEntry, AdviceEntry, AiAdviceEntry, BurritoEntry, DishPhotoEntry, DailyStatusEntry, KorvelReviewEntry } from './types';
 import * as storage from './services/storage';
 import { motion, AnimatePresence, useScroll, useTransform, Variants } from 'framer-motion';
-import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup, Lock, Unlock, Loader2, CheckCircle2, Sandwich, PenTool, Camera, Image as ImageIcon, UploadCloud, X, ToggleLeft, ToggleRight, Star, ShoppingBag, ExternalLink } from 'lucide-react';
+import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup, Lock, Unlock, Loader2, CheckCircle2, Sandwich, PenTool, Camera, Image as ImageIcon, UploadCloud, X, ToggleLeft, ToggleRight, Star, ShoppingBag, ExternalLink, Store, ChefHat, BarChart3, ChevronDown, Trophy, Medal, Bot } from 'lucide-react';
+import { GoogleGenAI } from "@google/genai";
 
 // --- Shared Components ---
 
@@ -144,7 +144,7 @@ const StatusDots = ({ status }: { status: DailyStatusEntry | null }) => {
   const getDotColorClass = (val: boolean | null | undefined) => {
     if (!isCurrent || val === null || val === undefined) return "bg-stone-200 border-stone-300 shadow-inner";
     if (val === true) return "bg-gradient-to-tr from-emerald-500 to-teal-400 border-emerald-300 shadow-lg shadow-emerald-500/30";
-    return "bg-gradient-to-tr from-rose-500 to-pink-500 border-rose-300 shadow-lg shadow-rose-500/30";
+    return "bg-gradient-to-tr from-red-600 to-red-500 border-red-400 shadow-lg shadow-red-500/30";
   };
 
   const items = [
@@ -170,7 +170,7 @@ const StatusDots = ({ status }: { status: DailyStatusEntry | null }) => {
                <motion.div 
                  animate={{ scale: [1, 1.5], opacity: [0, 0.6, 0] }}
                  transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                 className={`absolute inset-0 rounded-full ${item.value ? 'bg-emerald-400' : 'bg-rose-400'}`}
+                 className={`absolute inset-0 rounded-full ${item.value ? 'bg-emerald-400' : 'bg-red-500'}`}
                />
              )}
              
@@ -186,61 +186,6 @@ const StatusDots = ({ status }: { status: DailyStatusEntry | null }) => {
           </div>
         </motion.div>
       ))}
-    </div>
-  );
-};
-
-// --- Burrito Plate 3D Animation ---
-const BurritoPlate = ({ hasBurritos }: { hasBurritos: boolean }) => {
-  return (
-    <div className="w-full h-48 md:h-64 flex items-center justify-center relative perspective-[1000px]">
-       <motion.div 
-         initial={{ rotateX: 20, rotateY: 0 }}
-         animate={{ rotateX: 20, rotateY: [0, 5, -5, 0] }}
-         transition={{ rotateY: { duration: 6, repeat: Infinity, ease: "easeInOut" } }}
-         className="w-40 h-40 md:w-56 md:h-56 bg-white rounded-full shadow-2xl border-4 border-stone-100 flex items-center justify-center relative overflow-visible transform-style-3d"
-       >
-          {/* Inner Plate Shadow */}
-          <div className="absolute inset-2 rounded-full border border-stone-100 shadow-[inset_0_4px_10px_rgba(0,0,0,0.05)]"></div>
-
-          {hasBurritos ? (
-             <div className="relative w-full h-full flex items-center justify-center">
-                 {/* Burrito 1 */}
-                 <motion.div 
-                   className="absolute w-28 h-10 md:w-40 md:h-14 rounded-full shadow-lg overflow-hidden flex left-1/2 -translate-x-1/2"
-                   style={{ rotate: 45, y: -5, zIndex: 1 }}
-                 >
-                    <div className="w-1/2 h-full bg-[#E8CBA5]"></div>
-                    <div className="w-1/2 h-full bg-gradient-to-r from-stone-300 via-white to-stone-300 border-l border-stone-300/50"></div>
-                 </motion.div>
-                 
-                 {/* Burrito 2 */}
-                 <motion.div 
-                   className="absolute w-28 h-10 md:w-40 md:h-14 rounded-full shadow-lg overflow-hidden flex left-1/2 -translate-x-1/2"
-                   style={{ rotate: -45, y: 5, zIndex: 2 }}
-                 >
-                    <div className="w-1/2 h-full bg-[#E8CBA5]"></div>
-                    <div className="w-1/2 h-full bg-gradient-to-r from-stone-300 via-white to-stone-300 border-l border-stone-300/50"></div>
-                 </motion.div>
-
-                 {/* Smoke */}
-                 {[0, 1, 2].map(i => (
-                    <motion.div
-                      key={i}
-                      className="absolute top-1/2 left-1/2 w-4 h-4 bg-white rounded-full opacity-60 blur-md"
-                      animate={{ y: [-10, -50], x: [0, (i-1)*15], opacity: [0.6, 0] }}
-                      transition={{ duration: 2, repeat: Infinity, delay: i * 0.5, ease: "easeOut" }}
-                    />
-                 ))}
-             </div>
-          ) : (
-            <>
-               <div className="absolute w-1 h-1 bg-amber-800 rounded-full top-1/2 left-1/2 -translate-x-4"></div>
-               <div className="absolute w-1.5 h-1.5 bg-amber-700 rounded-full top-1/2 left-1/2 translate-x-2 translate-y-2"></div>
-               <div className="absolute w-1 h-1 bg-amber-900 rounded-full top-1/2 left-1/2 translate-x-5 -translate-y-4 opacity-50"></div>
-            </>
-          )}
-       </motion.div>
     </div>
   );
 };
@@ -502,11 +447,16 @@ const ImageModal = ({ photo, onClose }: { photo: DishPhotoEntry | null, onClose:
                        </div>
                        <div className="flex flex-col">
                           <p className="font-semibold text-stone-800">{photo.uploaderName}</p>
-                          {/* Rating Display */}
+                          {/* Rating Display - Show 5 stars always */}
                           {photo.rating > 0 && (
                             <div className="flex gap-0.5">
                               {[...Array(5)].map((_, i) => (
-                                <Star key={i} size={12} className={i < photo.rating ? "fill-amber-400 text-amber-400" : "text-stone-300"} strokeWidth={0} />
+                                <Star 
+                                  key={i} 
+                                  size={12} 
+                                  className={i < photo.rating ? "fill-amber-400 text-amber-400" : "text-stone-300"} 
+                                  strokeWidth={i < photo.rating ? 0 : 1.5}
+                                />
                               ))}
                             </div>
                           )}
@@ -709,13 +659,484 @@ const BengelsPage = () => {
   );
 };
 
+// --- Korvel Review Pages ---
+
+const KorvelPage = () => {
+  const [reviews, setReviews] = useState<KorvelReviewEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedPhoto, setSelectedPhoto] = useState<DishPhotoEntry | null>(null);
+
+  useEffect(() => {
+    const loadReviews = async () => {
+      setLoading(true);
+      const data = await storage.getKorvelReviews();
+      setReviews(data);
+      setLoading(false);
+    };
+    loadReviews();
+    const sub = storage.subscribeToKorvelUpdates(loadReviews);
+    return () => { sub.unsubscribe(); };
+  }, []);
+
+  const openPhoto = (review: KorvelReviewEntry) => {
+    if (!review.photoUrl) return;
+    setSelectedPhoto({
+      id: review.id,
+      dateStr: review.dateStr,
+      dishSection: review.order,
+      photoUrl: review.photoUrl,
+      uploaderName: review.expert,
+      comment: review.establishment,
+      rating: 0,
+      timestamp: review.timestamp
+    });
+  };
+
+  // Group by establishment
+  const groupedReviews = reviews.reduce((acc, review) => {
+    if (!acc[review.establishment]) {
+      acc[review.establishment] = [];
+    }
+    acc[review.establishment].push(review);
+    return acc;
+  }, {} as Record<string, KorvelReviewEntry[]>);
+
+  return (
+    <PageTransition>
+      <ImageModal photo={selectedPhoto} onClose={() => setSelectedPhoto(null)} />
+      <div className="space-y-12 pb-12">
+        <div className="text-center py-10">
+           <motion.div 
+             initial={{ opacity: 0, y: -20 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ duration: 0.8 }}
+             className="inline-block"
+           >
+              <h1 className="text-4xl md:text-6xl font-serif font-black tracking-tight text-stone-800 mb-4">
+                Korvelseweg <span className="text-transparent bg-clip-text bg-gradient-to-br from-orange-500 to-amber-600">Review</span>
+              </h1>
+              <div className="h-1 w-24 bg-orange-400 mx-auto rounded-full" />
+           </motion.div>
+        </div>
+
+        {loading ? (
+          <LoadingSpinner />
+        ) : Object.keys(groupedReviews).length === 0 ? (
+          <div className="text-center py-12 text-stone-400">Nog geen reviews gevonden.</div>
+        ) : (
+          <div className="grid gap-8">
+            {Object.entries(groupedReviews).map(([establishment, items], idx) => {
+              // Calculate Average Score for Establishment
+              const avgScore = items.reduce((sum, item) => sum + item.totalScore, 0) / items.length;
+              
+              return (
+                <ScrollReveal key={establishment} delay={idx * 0.1}>
+                  <Card title={establishment} icon={Store} className="border-l-4 border-l-orange-400">
+                    <div className="flex flex-col md:flex-row gap-6">
+                      {/* Left: Summary */}
+                      <div className="md:w-1/4 flex flex-col items-center justify-center p-4 bg-orange-50 rounded-2xl border border-orange-100">
+                         <div className="text-sm font-bold text-orange-800 uppercase tracking-widest mb-2">Gemiddelde Score</div>
+                         <div className={`text-5xl font-black font-serif ${avgScore >= 70 ? 'text-emerald-600' : avgScore >= 60 ? 'text-amber-500' : 'text-rose-500'}`}>
+                           {avgScore.toFixed(1)}
+                         </div>
+                         <div className="text-xs text-stone-500 mt-2">{items.length} expert(s)</div>
+                      </div>
+
+                      {/* Right: Detailed List */}
+                      <div className="flex-1 space-y-4">
+                        {items.map((review) => (
+                          <div key={review.id} className="bg-white p-4 rounded-xl border border-stone-100 shadow-sm">
+                             <div className="flex justify-between items-start mb-3">
+                               <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center font-bold text-stone-600 text-xs">
+                                    {review.expert.charAt(0)}
+                                  </div>
+                                  <div>
+                                    <h4 className="font-bold text-stone-800">{review.expert}</h4>
+                                    <p className="text-xs text-stone-500 italic">{review.order}</p>
+                                  </div>
+                               </div>
+                               <div className="flex items-center gap-4">
+                                  {review.photoUrl && (
+                                    <button 
+                                      onClick={() => openPhoto(review)}
+                                      className="p-1.5 bg-orange-50 text-orange-600 rounded-full hover:bg-orange-100 transition-colors"
+                                      title="Bekijk foto"
+                                    >
+                                      <ImageIcon size={16} />
+                                    </button>
+                                  )}
+                                  <span className="text-xl font-bold font-serif text-orange-600">{review.totalScore}</span>
+                               </div>
+                             </div>
+                             
+                             {/* Detailed Scores Grid */}
+                             <div className="grid grid-cols-2 md:grid-cols-5 gap-y-2 gap-x-4 text-xs bg-stone-50 p-3 rounded-lg">
+                               {Object.entries(review.scores).map(([key, value]) => (
+                                 <div key={key} className="flex items-center gap-2">
+                                   <span className="capitalize text-stone-500 min-w-[70px]">{key}:</span>
+                                   <span className="font-bold text-stone-800">{value}</span>
+                                 </div>
+                               ))}
+                             </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </Card>
+                </ScrollReveal>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </PageTransition>
+  );
+};
+
+// --- Korvel Ranking Page Component ---
+
+const KorvelRankingPage = () => {
+  const [rankings, setRankings] = useState<{name: string, avgScore: number, reviewCount: number}[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadRankings = async () => {
+      setLoading(true);
+      const reviews = await storage.getKorvelReviews();
+      
+      const grouped = reviews.reduce((acc, review) => {
+        if (!acc[review.establishment]) {
+          acc[review.establishment] = [];
+        }
+        acc[review.establishment].push(review);
+        return acc;
+      }, {} as Record<string, KorvelReviewEntry[]>);
+
+      const calculatedRankings = Object.entries(grouped).map(([name, items]) => {
+        const avg = items.reduce((sum, item) => sum + item.totalScore, 0) / items.length;
+        return { name, avgScore: avg, reviewCount: items.length };
+      }).sort((a, b) => b.avgScore - a.avgScore);
+
+      setRankings(calculatedRankings);
+      setLoading(false);
+    };
+    loadRankings();
+    const sub = storage.subscribeToKorvelUpdates(loadRankings);
+    return () => { sub.unsubscribe(); };
+  }, []);
+
+  return (
+    <PageTransition>
+      <div className="space-y-12 pb-12">
+        <div className="text-center py-10">
+           <motion.div 
+             initial={{ opacity: 0, y: -20 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ duration: 0.8 }}
+             className="inline-block"
+           >
+              <h1 className="text-4xl md:text-6xl font-serif font-black tracking-tight text-stone-800 mb-4">
+                Korvelseweg <span className="text-transparent bg-clip-text bg-gradient-to-br from-amber-500 to-yellow-600">Ranking</span>
+              </h1>
+              <div className="h-1 w-24 bg-amber-400 mx-auto rounded-full" />
+           </motion.div>
+        </div>
+
+        {loading ? (
+          <LoadingSpinner />
+        ) : rankings.length === 0 ? (
+          <div className="text-center py-12 text-stone-400">Nog geen rankings beschikbaar.</div>
+        ) : (
+          <div className="max-w-3xl mx-auto space-y-4">
+            {rankings.map((item, index) => {
+              const isTop3 = index < 3;
+              let rankColor = "bg-stone-100 text-stone-500";
+              let cardBorder = "border-stone-100";
+              let icon = <span className="font-bold text-lg w-6 text-center">{index + 1}</span>;
+
+              if (index === 0) {
+                rankColor = "bg-gradient-to-br from-yellow-300 to-amber-500 text-white shadow-lg shadow-amber-300/50";
+                cardBorder = "border-amber-200 ring-2 ring-amber-100";
+                icon = <Trophy size={24} fill="currentColor" />;
+              } else if (index === 1) {
+                rankColor = "bg-gradient-to-br from-slate-300 to-slate-400 text-white shadow-lg shadow-slate-300/50";
+                cardBorder = "border-slate-200";
+                icon = <Medal size={24} />;
+              } else if (index === 2) {
+                rankColor = "bg-gradient-to-br from-orange-300 to-orange-400 text-white shadow-lg shadow-orange-300/50";
+                cardBorder = "border-orange-200";
+                icon = <Medal size={24} />;
+              }
+
+              return (
+                <ScrollReveal key={item.name} delay={index * 0.1}>
+                  <motion.div 
+                    whileHover={{ scale: 1.02, x: 5 }}
+                    className={`bg-white rounded-2xl p-4 md:p-6 flex items-center gap-4 md:gap-6 shadow-sm border transition-all ${cardBorder}`}
+                  >
+                    <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center shrink-0 ${rankColor}`}>
+                      {icon}
+                    </div>
+                    
+                    <div className="flex-1">
+                      <h3 className={`font-serif font-bold text-lg md:text-xl ${isTop3 ? 'text-stone-900' : 'text-stone-700'}`}>
+                        {item.name}
+                      </h3>
+                      <p className="text-xs md:text-sm text-stone-400 flex items-center gap-1">
+                        <Store size={12} />
+                        {item.reviewCount} review{item.reviewCount !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+
+                    <div className="text-right">
+                      <div className={`text-2xl md:text-3xl font-black font-serif ${index === 0 ? 'text-amber-500' : 'text-stone-800'}`}>
+                        {item.avgScore.toFixed(1)}
+                      </div>
+                      <div className="text-[10px] uppercase font-bold text-stone-300 tracking-wider">Score</div>
+                    </div>
+                  </motion.div>
+                </ScrollReveal>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </PageTransition>
+  );
+};
+
+const KorvelInputPage = () => {
+  const [isSaving, setIsSaving] = useState(false);
+  const [establishment, setEstablishment] = useState('');
+  const [customEstablishment, setCustomEstablishment] = useState('');
+  const [existingEstablishments, setExistingEstablishments] = useState<string[]>([]);
+  
+  const [expert, setExpert] = useState('');
+  const [order, setOrder] = useState('');
+  
+  // Photo
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  const [scores, setScores] = useState({
+    grimmigheid: 5, smaak: 5, versheid: 5, snelheid: 5, service: 5,
+    hygiene: 5, taal: 5, prijs: 5, temperatuur: 5, verpakking: 5
+  });
+
+  useEffect(() => {
+    const fetchEst = async () => {
+      const unique = await storage.getUniqueEstablishments();
+      setExistingEstablishments(unique);
+    };
+    fetchEst();
+  }, []);
+
+  const handleScoreChange = (key: string, value: number) => {
+    setScores(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      setPhoto(selectedFile);
+      setPhotoPreview(URL.createObjectURL(selectedFile));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const finalEstablishment = establishment === 'NEW_ENTRY' ? customEstablishment : establishment;
+    
+    if (!finalEstablishment || !expert || !order) {
+      alert("Vul alle verplichte velden in.");
+      return;
+    }
+    
+    setIsSaving(true);
+    try {
+      let photoUrl = undefined;
+      if (photo) {
+        photoUrl = await storage.uploadPhoto(photo);
+      }
+
+      await storage.saveKorvelReview(finalEstablishment, expert, scores, order, photoUrl);
+      alert("Review opgeslagen!");
+      
+      // Reset form
+      setEstablishment('');
+      setCustomEstablishment('');
+      setExpert('');
+      setOrder('');
+      setPhoto(null);
+      setPhotoPreview(null);
+      setScores({
+        grimmigheid: 5, smaak: 5, versheid: 5, snelheid: 5, service: 5,
+        hygiene: 5, taal: 5, prijs: 5, temperatuur: 5, verpakking: 5
+      });
+      // Refresh list
+      const unique = await storage.getUniqueEstablishments();
+      setExistingEstablishments(unique);
+
+    } catch (e) {
+      console.error(e);
+      alert("Fout bij opslaan.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const scoreLabels = [
+    "grimmigheid", "smaak", "versheid", "snelheid", "service", 
+    "hygiene", "taal", "prijs", "temperatuur", "verpakking"
+  ];
+
+  return (
+    <PageTransition>
+      <div className="max-w-2xl mx-auto pb-12">
+        <ScrollReveal>
+          <Card title="Nieuwe Review" icon={Store}>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase text-stone-500 mb-1">Etablissement</label>
+                  <div className="relative">
+                    <select 
+                      value={establishment} 
+                      onChange={(e) => setEstablishment(e.target.value)} 
+                      className="w-full p-3 rounded-lg border border-stone-200 bg-white appearance-none focus:border-orange-500 outline-none"
+                      required
+                    >
+                      <option value="">Kies een zaak...</option>
+                      {existingEstablishments.map(est => (
+                        <option key={est} value={est}>{est}</option>
+                      ))}
+                      <option value="NEW_ENTRY">+ Nieuw toevoegen</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-stone-500">
+                      <ChevronDown size={16} />
+                    </div>
+                  </div>
+                  
+                  {establishment === 'NEW_ENTRY' && (
+                    <motion.div 
+                      initial={{ height: 0, opacity: 0 }} 
+                      animate={{ height: 'auto', opacity: 1 }} 
+                      className="mt-2"
+                    >
+                      <input 
+                        type="text" 
+                        required 
+                        value={customEstablishment} 
+                        onChange={(e) => setCustomEstablishment(e.target.value)} 
+                        className="w-full p-3 rounded-lg border border-orange-200 bg-orange-50 focus:border-orange-500 outline-none" 
+                        placeholder="Naam van de nieuwe zaak" 
+                      />
+                    </motion.div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-stone-500 mb-1">Expert</label>
+                  <input type="text" required value={expert} onChange={(e) => setExpert(e.target.value)} className="w-full p-3 rounded-lg border border-stone-200 focus:border-orange-500 outline-none" placeholder="Jouw naam" />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-bold uppercase text-stone-500 mb-1">Bestelling</label>
+                <input type="text" required value={order} onChange={(e) => setOrder(e.target.value)} className="w-full p-3 rounded-lg border border-stone-200 focus:border-orange-500 outline-none" placeholder="Wat heb je gegeten?" />
+              </div>
+
+              {/* Photo Upload Section */}
+              <div className="bg-stone-50 p-4 rounded-xl border border-stone-100">
+                <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-3">Foto (Optioneel)</label>
+                {!photoPreview ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    <button 
+                      type="button"
+                      onClick={() => cameraInputRef.current?.click()}
+                      className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-orange-200 rounded-xl bg-white hover:bg-orange-50 hover:border-orange-400 transition-colors gap-2 text-orange-700 group"
+                    >
+                      <div className="p-2 bg-orange-50 rounded-full shadow-sm group-hover:scale-110 transition-transform">
+                        <Camera size={20} />
+                      </div>
+                      <span className="font-semibold text-xs">Camera</span>
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-stone-200 rounded-xl bg-white hover:bg-stone-50 hover:border-stone-400 transition-colors gap-2 text-stone-600 group"
+                    >
+                      <div className="p-2 bg-stone-50 rounded-full shadow-sm group-hover:scale-110 transition-transform">
+                        <ImageIcon size={20} />
+                      </div>
+                      <span className="font-semibold text-xs">Galerij</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative rounded-xl overflow-hidden border border-stone-200 shadow-sm group w-full h-48 bg-stone-200">
+                    <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                    <button 
+                      type="button" 
+                      onClick={() => { setPhoto(null); setPhotoPreview(null); }}
+                      className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                )}
+                {/* Hidden Inputs */}
+                <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} className="hidden" onChange={handlePhotoChange} />
+                <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handlePhotoChange} />
+              </div>
+
+              <div className="space-y-4 bg-stone-50 p-6 rounded-xl border border-stone-100">
+                <h3 className="font-serif font-bold text-lg text-stone-800 mb-4 flex items-center gap-2"><BarChart3 size={20}/> Scores (0-10)</h3>
+                {scoreLabels.map((key) => (
+                  <div key={key} className="flex items-center gap-4">
+                    <label className="w-24 text-sm font-semibold capitalize text-stone-600">{key}</label>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="10" 
+                      step="0.5" 
+                      value={scores[key as keyof typeof scores]} 
+                      onChange={(e) => handleScoreChange(key, parseFloat(e.target.value))} 
+                      className="flex-1 accent-orange-500 h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <span className="w-8 text-right font-bold text-orange-600">{scores[key as keyof typeof scores]}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={isSaving}
+                className="w-full py-4 bg-stone-800 text-white rounded-xl font-bold hover:bg-orange-600 transition-colors shadow-lg flex justify-center items-center gap-2"
+              >
+                {isSaving ? <Loader2 className="animate-spin"/> : <Save size={20}/>}
+                Review Opslaan
+              </button>
+            </form>
+          </Card>
+        </ScrollReveal>
+      </div>
+    </PageTransition>
+  );
+};
+
 // --- Pages ---
 
 const HomePage = () => {
   const [menu, setMenu] = useState<MenuEntry | null>(null);
   const [advice, setAdvice] = useState<AdviceEntry | null>(null);
+  const [aiAdvice, setAiAdvice] = useState<AiAdviceEntry | null>(null);
   const [dailyStatus, setDailyStatus] = useState<DailyStatusEntry | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // AI Generation State
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   
   // Photo Upload State
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
@@ -727,14 +1148,16 @@ const HomePage = () => {
   const today = new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   const loadData = async () => {
-    const [latestMenu, latestAdvice, latestDailyStatus] = await Promise.all([
+    const [latestMenu, latestAdvice, latestDailyStatus, latestAiAdvice] = await Promise.all([
       storage.getLatestMenu(),
       storage.getLatestAdvice(),
-      storage.getLatestDailyStatus()
+      storage.getLatestDailyStatus(),
+      storage.getLatestAiAdvice()
     ]);
     setMenu(latestMenu);
     setAdvice(latestAdvice);
     setDailyStatus(latestDailyStatus);
+    setAiAdvice(latestAiAdvice);
     setLoading(false);
   };
 
@@ -743,7 +1166,13 @@ const HomePage = () => {
     const menuSub = storage.subscribeToMenuUpdates(loadData);
     const adviceSub = storage.subscribeToAdviceUpdates(loadData);
     const dailyStatusSub = storage.subscribeToDailyStatusUpdates(loadData);
-    return () => { menuSub.unsubscribe(); adviceSub.unsubscribe(); dailyStatusSub.unsubscribe(); };
+    const aiAdviceSub = storage.subscribeToAiAdviceUpdates(loadData);
+    return () => { 
+      menuSub.unsubscribe(); 
+      adviceSub.unsubscribe(); 
+      dailyStatusSub.unsubscribe(); 
+      aiAdviceSub.unsubscribe();
+    };
   }, []);
 
   const openPhotoModal = (dish: string) => {
@@ -766,7 +1195,67 @@ const HomePage = () => {
     });
   };
 
+  // Helper to generate AI advice
+  const generateAiAdvice = async () => {
+    if (!menu || !dailyStatus) return;
+    
+    setIsGeneratingAi(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const dateStr = menu.formattedDate;
+      const menuItems = menu.items;
+      const status = dailyStatus;
+
+      const prompt = `
+        Je bent een grove, sarcastische maar humoristische AI-assistent voor Job genaamd 'Cyriel 2.0 (AI-adviseur)'.
+        Het is vandaag ${dateStr}.
+    
+        Hier zijn de feiten voor de lunch van vandaag:
+        
+        1. Menu van 'Prins Heerlijk' (De standaard optie):
+        ${menuItems}
+    
+        2. Overige statussen:
+        - Heeft Job burritos meegenomen?: ${status.burritos ? 'JA' : 'NEE'}
+        - Is het Visdag (staat de viskraam er)?: ${status.visdag ? 'JA' : 'NEE'}
+        - Is Bengels een optie?: ${status.bengels ? 'JA' : 'NEE'}
+        - Is er lekker vreten op kantoor?: ${status.lekkerVreten ? 'JA' : 'NEE'}
+        - Zijn de etablisementen aan de Korvelseweg een optie?: ${status.korvel ? 'JA' : 'NEE'}
+    
+        Opdracht:
+        Schrijf een kort, grappig en grof advies voor Job over wat hij moet gaan vreten.
+        - Als er Burritos zijn, dit is altijd wel een veilige keuze als er niks anders lekkers is (deze zijn heel lekker en zelf gemaakt door Job).
+        - Prins Heerlijk is vaak 'de veilige keuze'. In het advies behandel je de opties die op het menu staan.
+        - Wees besluitvaardig. Kies één winnaar.
+        - Als er lekker vreten op kantoor is, is dit een optie maar alleen als er echt geen andere goede opties zijn. Het is gratis, maar het zullen dan simpele tosti's worden.
+        - Gebruik grove humor als dat past. Het is belangrijk om te weten dat Prins Heerlijk een restaurant is waar mensen met een verstandelijke of lichamelijke beperking werken, maak hier grappen over, hou jezelf niet in.
+        - Bengels is lekker, maar heeft een vast menu en is dus altijd hetzelfde. Dit is een goed alternatief als de opties bij Prins Heerlijk niet goed zijn.
+        - Als Korvelseweg een optie is, kies je hier bijna altijd voor. De Korvel is echt een volksbuurt met veel kebabzaken en fastfood, het is een beetje traditie om dit op vrijdag te halen.
+        - Maximaal 5 zinnen.
+      `;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+      });
+
+      const adviceText = response.text || "De robot heeft even geen inspiratie, probeer het later nog eens.";
+      await storage.saveAiAdvice(adviceText);
+      await loadData();
+      
+    } catch (error) {
+      console.error("AI Generation Error", error);
+      alert("Er ging iets mis bij het genereren van het advies.");
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
+
   const menuDisplayDate = (menu && menu.formattedDate === today) ? menu.formattedDate : today;
+  
+  // Check if we can generate advice: Menu exists for today AND DailyStatus exists for today
+  // We check if dailyStatus has meaningful entries (not all null), or simply if the record exists for today
+  const canGenerateAi = menu && menu.formattedDate === today && dailyStatus && dailyStatus.formattedDate === today;
 
   // Helper to parse and render menu sections with camera icon
   const renderMenuContent = (menuText: string) => {
@@ -939,55 +1428,107 @@ const HomePage = () => {
           </Card>
         </ScrollReveal>
         
-        <ScrollReveal delay={0.4}>
-          <Card title="Cyriel's Advies" icon={Sparkles} type="advice" className="bg-gradient-to-br from-white to-amber-50/50">
-             {loading ? (
-               <LoadingSpinner />
-             ) : (advice && advice.formattedDate === today) ? (
-               <div className="relative">
-                 <div className="text-8xl absolute -top-6 -left-4 text-orange-200 font-serif opacity-40 select-none animate-pulse">"</div>
-                 <p className="whitespace-pre-wrap text-lg md:text-2xl text-stone-700 italic pl-8 md:pl-10 pr-4 relative z-10 font-serif leading-loose">
-                   {advice.advice}
-                 </p>
-                 
-                 {/* Display Advice Photo if available */}
-                 {advice.photoUrl && (
-                   <motion.div 
-                     whileHover={{ scale: 1.02 }}
-                     onClick={handleAdvicePhotoClick}
-                     className="mt-6 mx-auto max-w-md rounded-2xl overflow-hidden shadow-sm border-2 border-white/50 cursor-pointer"
-                   >
-                     <img src={advice.photoUrl} alt="Cyriel's Advies" className="w-full h-auto object-cover" />
-                   </motion.div>
-                 )}
+        <div className="flex flex-col gap-8">
+            <ScrollReveal delay={0.4}>
+            <Card title="Cyriel's Advies" icon={Sparkles} type="advice" className="bg-gradient-to-br from-white to-amber-50/50">
+                {loading ? (
+                <LoadingSpinner />
+                ) : (advice && advice.formattedDate === today) ? (
+                <div className="relative flex flex-col">
+                    <div className="text-8xl absolute -top-6 -left-4 text-orange-200 font-serif opacity-40 select-none animate-pulse">"</div>
+                    <p className="whitespace-pre-wrap text-lg md:text-xl text-stone-700 italic pl-8 md:pl-10 pr-4 relative z-10 font-serif leading-loose flex-grow">
+                    {advice.advice}
+                    </p>
+                    
+                    {/* Display Advice Photo if available */}
+                    {advice.photoUrl && (
+                    <motion.div 
+                        whileHover={{ scale: 1.02 }}
+                        onClick={handleAdvicePhotoClick}
+                        className="mt-6 mx-auto w-full max-w-xs rounded-2xl overflow-hidden shadow-sm border-2 border-white/50 cursor-pointer"
+                    >
+                        <img src={advice.photoUrl} alt="Cyriel's Advies" className="w-full h-auto object-cover" />
+                    </motion.div>
+                    )}
 
-                 <div className="mt-8 flex justify-end items-center gap-3">
-                    <div className="text-right">
-                      <p className="font-bold text-stone-800 text-base">- Cyriel</p>
-                      <p className="text-xs text-stone-400">{new Date(advice.timestamp).toLocaleDateString('nl-NL')}</p>
+                    <div className="mt-8 flex justify-end items-center gap-3">
+                        <div className="text-right">
+                        <p className="font-bold text-stone-800 text-base">- Cyriel</p>
+                        <p className="text-xs text-stone-400">{new Date(advice.timestamp).toLocaleDateString('nl-NL')}</p>
+                        </div>
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-200 to-amber-200 flex items-center justify-center text-orange-900 font-bold font-serif text-xl shrink-0 shadow-lg border border-white">C</div>
                     </div>
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-200 to-amber-200 flex items-center justify-center text-orange-900 font-bold font-serif text-xl shrink-0 shadow-lg border border-white">C</div>
-                 </div>
-               </div>
-             ) : (
-               <div className="flex flex-col items-center justify-center py-12 text-stone-400 text-center">
-                  <motion.div animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }} transition={{ repeat: Infinity, duration: 3 }}>
-                    <Coffee size={48} className="mb-4" />
-                  </motion.div>
-                  <p className="text-lg font-serif italic">Cyriel is nog aan het broeden op zijn advies.</p>
-               </div>
-             )}
-          </Card>
-        </ScrollReveal>
+                </div>
+                ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-stone-400 text-center">
+                    <motion.div animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }} transition={{ repeat: Infinity, duration: 3 }}>
+                        <Coffee size={48} className="mb-4" />
+                    </motion.div>
+                    <p className="text-lg font-serif italic">Cyriel is nog aan het broeden op zijn advies.</p>
+                </div>
+                )}
+            </Card>
+            </ScrollReveal>
+
+            {/* AI Advice Card */}
+            <ScrollReveal delay={0.5}>
+              <Card title="Cyriel 2.0 (AI-adviseur)" icon={Bot} type="default" className="bg-gradient-to-br from-white to-blue-50/50 border-blue-100">
+                {loading ? (
+                  <LoadingSpinner />
+                ) : (aiAdvice && aiAdvice.formattedDate === today) ? (
+                  <div className="relative flex flex-col">
+                    <div className="text-8xl absolute -top-6 -left-4 text-blue-200 font-serif opacity-40 select-none">"</div>
+                    <p className="whitespace-pre-wrap text-lg md:text-xl text-stone-700 italic pl-8 md:pl-10 pr-4 relative z-10 font-serif leading-loose flex-grow">
+                      {aiAdvice.advice}
+                    </p>
+                    <div className="mt-8 flex justify-end items-center gap-3">
+                      <div className="text-right">
+                        <p className="font-bold text-stone-800 text-base">- Cyriel 2.0</p>
+                        <p className="text-xs text-stone-400">{new Date(aiAdvice.timestamp).toLocaleDateString('nl-NL')}</p>
+                      </div>
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-200 to-cyan-200 flex items-center justify-center text-blue-900 font-bold shrink-0 shadow-lg border border-white">
+                         <Bot size={24} />
+                      </div>
+                    </div>
+                  </div>
+                ) : canGenerateAi ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
+                    <p className="text-stone-500 font-medium">Alle gegevens zijn bekend. Cyriel 2.0 staat klaar.</p>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={generateAiAdvice}
+                      disabled={isGeneratingAi}
+                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full font-bold shadow-lg hover:shadow-blue-500/30 transition-all flex items-center gap-2 disabled:opacity-70"
+                    >
+                      {isGeneratingAi ? <Loader2 className="animate-spin" /> : <Bot />}
+                      {isGeneratingAi ? "Aan het denken..." : "Genereer Cyriel 2.0 Advies"}
+                    </motion.button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-stone-400 text-center">
+                     <Bot size={48} className="mb-4 opacity-30" />
+                     <p className="text-lg font-serif italic">Cyriel 2.0 slaapt.</p>
+                     <p className="text-sm">Vul eerst het menu en alle statussen in.</p>
+                  </div>
+                )}
+              </Card>
+            </ScrollReveal>
+        </div>
       </div>
     </PageTransition>
   );
 };
 
-const InputPage = ({ type }: { type: 'menu' | 'advice' | 'other' }) => {
+const InputPage = ({ type }: { type: 'menu' | 'advice' | 'other' | 'korvel' }) => {
   const isMenu = type === 'menu';
   const isAdvice = type === 'advice';
   const isOther = type === 'other';
+  const isKorvel = type === 'korvel';
+
+  if (isKorvel) {
+    return <KorvelInputPage />;
+  }
   
   const [isLocked, setIsLocked] = useState(isAdvice);
   const [passwordInput, setPasswordInput] = useState('');
@@ -1469,6 +2010,81 @@ const HistoryItem = ({ item, photos, onPhotoClick }: { item: any, photos: DishPh
     }
   };
 
+  // Helper to calculate stats per dish section
+  const getDishStats = (dishName: string) => {
+    const relevantPhotos = photos.filter(p => p.dishSection === dishName && p.rating > 0);
+    if (relevantPhotos.length === 0) return null;
+    const avg = relevantPhotos.reduce((sum, p) => sum + p.rating, 0) / relevantPhotos.length;
+    return { avg: avg.toFixed(1), count: relevantPhotos.length };
+  };
+
+  const renderStars = (rating: number, size: number = 12) => (
+    <div className="flex gap-0.5">
+      {[...Array(5)].map((_, i) => (
+        <Star 
+          key={i} 
+          size={size} 
+          className={i < Math.round(rating) ? "fill-amber-400 text-amber-400" : "text-stone-300"} 
+          strokeWidth={i < Math.round(rating) ? 0 : 1.5}
+        />
+      ))}
+    </div>
+  );
+
+  // Helper to parse and render menu content with ratings
+  const renderMenuWithStats = (menuText: string) => {
+    const sections = [
+      { header: '🍽️ Gerecht 1', label: 'Gerecht 1' },
+      { header: '🍽️ Gerecht 2', label: 'Gerecht 2' },
+      { header: '🥣 Soep', label: 'Soep' }
+    ];
+
+    const hasStructure = sections.every(s => menuText.includes(s.header));
+
+    if (hasStructure) {
+      const splitByHeader = (text: string, header: string) => {
+         const parts = text.split(header);
+         return parts.length > 1 ? parts[1] : '';
+      };
+
+      const rawDish1 = splitByHeader(menuText, '🍽️ Gerecht 1').split('🍽️ Gerecht 2')[0];
+      const rawDish2 = splitByHeader(menuText, '🍽️ Gerecht 2').split('🥣 Soep')[0];
+      const rawSoup = splitByHeader(menuText, '🥣 Soep');
+
+      const renderBlock = (label: string, rawText: string) => {
+        const stats = getDishStats(label);
+        return (
+          <div key={label} className="mb-4 last:mb-0">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <h4 className="font-bold text-orange-800 font-serif text-base border-b border-orange-200 inline-block pb-0.5">
+                {label === 'Soep' ? '🥣 Soep' : `🍽️ ${label}`}
+              </h4>
+              {stats && (
+                <div className="flex items-center gap-1.5 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full shadow-sm ml-2">
+                   {renderStars(parseFloat(stats.avg), 10)}
+                   <span className="text-[10px] font-bold text-stone-600 leading-none pt-0.5">{stats.avg} ({stats.count})</span>
+                </div>
+              )}
+            </div>
+            <div className="whitespace-pre-wrap text-stone-600 leading-relaxed pl-1 text-sm md:text-base">
+               {rawText.trim()}
+            </div>
+          </div>
+        );
+      };
+
+      return (
+        <div>
+          {renderBlock('Gerecht 1', rawDish1)}
+          {renderBlock('Gerecht 2', rawDish2)}
+          {renderBlock('Soep', rawSoup)}
+        </div>
+      );
+    }
+
+    return <div className="text-stone-600 whitespace-pre-wrap text-sm md:text-base">{menuText}</div>;
+  };
+
   return (
     <motion.div whileHover={{ scale: 1.01, x: 5 }} className="bg-white/80 backdrop-blur-sm p-5 md:p-6 rounded-xl shadow-sm border border-stone-100 hover:border-orange-200 hover:shadow-md transition-all">
       <div className="flex flex-col gap-4">
@@ -1478,7 +2094,9 @@ const HistoryItem = ({ item, photos, onPhotoClick }: { item: any, photos: DishPh
             <h3 className="text-lg md:text-xl font-bold font-serif text-stone-800 capitalize">{item.formattedDate}</h3>
           </div>
           <div className="pl-4 md:pl-6 border-l-2 border-orange-100 group-hover:border-orange-300 transition-colors">
-            <div className="text-stone-600 whitespace-pre-wrap text-sm md:text-base">{item.items || item.advice}</div>
+            {item.items ? renderMenuWithStats(item.items) : (
+              <div className="text-stone-600 whitespace-pre-wrap text-sm md:text-base">{item.advice}</div>
+            )}
             
             {/* Display Advice Photo in History */}
             {advicePhotoUrl && (
@@ -1514,8 +2132,14 @@ const HistoryItem = ({ item, photos, onPhotoClick }: { item: any, photos: DishPh
                        {/* Overlay Rating */}
                        {photo.rating > 0 && (
                           <div className="flex gap-0.5 mt-1">
-                             <Star size={10} className="fill-amber-400 text-amber-400" strokeWidth={0} />
-                             <span className="font-bold text-[10px]">{photo.rating}</span>
+                             {[...Array(5)].map((_, i) => (
+                                <Star 
+                                  key={i} 
+                                  size={10} 
+                                  className={i < photo.rating ? "fill-amber-400 text-amber-400" : "text-stone-500"} 
+                                  strokeWidth={0} 
+                                />
+                             ))}
                           </div>
                        )}
                     </div>
@@ -1533,13 +2157,13 @@ const HistoryItem = ({ item, photos, onPhotoClick }: { item: any, photos: DishPh
   );
 }
 
-const HistoryPage = ({ type }: { type: 'menu' | 'advice' }) => {
+const HistoryPage = ({ type }: { type: 'menu' | 'advice' | 'ai_advice' }) => {
   const [items, setItems] = useState<any[]>([]);
   const [allPhotos, setAllPhotos] = useState<DishPhotoEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPhoto, setSelectedPhoto] = useState<DishPhotoEntry | null>(null);
   
-  const title = type === 'menu' ? "Historie: Menu's" : "Historie: Adviezen";
+  const title = type === 'menu' ? "Historie: Menu's" : type === 'advice' ? "Historie: Adviezen" : "Historie: AI Adviezen";
   
   useEffect(() => {
     const fetchHistory = async () => {
@@ -1553,9 +2177,12 @@ const HistoryPage = ({ type }: { type: 'menu' | 'advice' }) => {
            ]);
            setItems(storage.getUniqueHistory(rawMenus));
            setAllPhotos(allPhotosDB);
-        } else {
+        } else if (type === 'advice') {
            const rawAdvice = await storage.getAdvices();
            setItems(storage.getUniqueHistory(rawAdvice));
+        } else if (type === 'ai_advice') {
+           const rawAiAdvice = await storage.getAiAdvices();
+           setItems(storage.getUniqueHistory(rawAiAdvice));
         }
       } catch (e) { console.error(e); } finally { setLoading(false); }
     };
@@ -1569,7 +2196,7 @@ const HistoryPage = ({ type }: { type: 'menu' | 'advice' }) => {
       <div className="space-y-8 pb-12">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 1.0 }} className="flex items-center gap-4 mb-6 md:mb-8">
           <motion.div whileHover={{ rotate: 360 }} transition={{ duration: 1 }} className="p-3 bg-white rounded-full shadow-md text-orange-600">
-            <History size={24} className="md:w-8 md:h-8" />
+            {type === 'ai_advice' ? <Bot size={24} className="md:w-8 md:h-8" /> : <History size={24} className="md:w-8 md:h-8" />}
           </motion.div>
           <h1 className="text-2xl md:text-3xl font-serif font-bold text-stone-800 leading-tight">{title}</h1>
         </motion.div>
@@ -1603,12 +2230,16 @@ export default function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/bengels" element={<BengelsPage />} />
+          <Route path="/korvel/reviews" element={<KorvelPage />} />
+          <Route path="/korvel/ranking" element={<KorvelRankingPage />} />
           <Route path="/input/menu" element={<InputPage type="menu" />} />
           <Route path="/input/advice" element={<InputPage type="advice" />} />
           {/* Burritos removed as standalone, integrated into 'other' */}
           <Route path="/input/other" element={<InputPage type="other" />} />
+          <Route path="/input/korvel" element={<InputPage type="korvel" />} />
           <Route path="/history/menu" element={<HistoryPage type="menu" />} />
           <Route path="/history/advice" element={<HistoryPage type="advice" />} />
+          <Route path="/history/ai" element={<HistoryPage type="ai_advice" />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>

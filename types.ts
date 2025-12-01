@@ -16,6 +16,14 @@ export interface AdviceEntry {
   timestamp: number;
 }
 
+export interface AiAdviceEntry {
+  id: string;
+  dateStr: string;
+  formattedDate: string;
+  advice: string;
+  timestamp: number;
+}
+
 export interface BurritoEntry {
   id: string;
   dateStr: string;
@@ -47,4 +55,27 @@ export interface DishPhotoEntry {
   timestamp: number;
 }
 
-export type EntryType = 'menu' | 'advice' | 'burritos' | 'other';
+export interface KorvelReviewEntry {
+  id: string;
+  establishment: string;
+  expert: string;
+  scores: {
+    grimmigheid: number;
+    smaak: number;
+    versheid: number;
+    snelheid: number;
+    service: number;
+    hygiene: number;
+    taal: number;
+    prijs: number;
+    temperatuur: number;
+    verpakking: number;
+  };
+  totalScore: number;
+  order: string;
+  dateStr: string;
+  photoUrl?: string; // Added photo support
+  timestamp: number;
+}
+
+export type EntryType = 'menu' | 'advice' | 'ai_advice' | 'burritos' | 'other' | 'korvel';

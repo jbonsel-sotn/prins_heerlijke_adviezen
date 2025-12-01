@@ -1,6 +1,6 @@
 
 import { supabase } from './supabase';
-import { MenuEntry, AdviceEntry, BurritoEntry, DishPhotoEntry, DailyStatusEntry } from '../types';
+import { MenuEntry, AdviceEntry, AiAdviceEntry, BurritoEntry, DishPhotoEntry, DailyStatusEntry, KorvelReviewEntry } from '../types';
 
 // --- Mappers ---
 // Map database snake_case to TypeScript camelCase
@@ -19,6 +19,14 @@ const mapAdviceFromDB = (data: any): AdviceEntry => ({
   formattedDate: data.formatted_date,
   advice: data.advice,
   photoUrl: data.photo_url,
+  timestamp: data.timestamp
+});
+
+const mapAiAdviceFromDB = (data: any): AiAdviceEntry => ({
+  id: data.id,
+  dateStr: data.date_str,
+  formattedDate: data.formatted_date,
+  advice: data.advice,
   timestamp: data.timestamp
 });
 
@@ -53,6 +61,65 @@ const mapPhotoFromDB = (data: any): DishPhotoEntry => ({
   timestamp: data.timestamp
 });
 
+const mapKorvelReviewFromDB = (data: any): KorvelReviewEntry => ({
+  id: data.id,
+  establishment: data.establishment,
+  expert: data.expert,
+  scores: data.scores, // Assuming JSONB or similar structure
+  totalScore: data.total_score,
+  order: data.order_details,
+  dateStr: data.date_str,
+  photoUrl: data.photo_url,
+  timestamp: data.timestamp
+});
+
+// --- Historical Data (Imported from HTML) ---
+const HISTORY_REVIEWS: KorvelReviewEntry[] = [
+  { id: 'h1', establishment: 'Texas', expert: 'Tootje', scores: { grimmigheid: 7.5, smaak: 6, versheid: 6, snelheid: 6, service: 6, hygiene: 2, taal: 7, prijs: 6, temperatuur: 8, verpakking: 4 }, totalScore: 58.5, order: 'Kapsalon', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h2', establishment: 'Texas', expert: 'Smart', scores: { grimmigheid: 7, smaak: 6, versheid: 4, snelheid: 8, service: 5, hygiene: 2, taal: 6, prijs: 7, temperatuur: 8, verpakking: 5 }, totalScore: 58, order: 'Döner box', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h3', establishment: 'Texas', expert: 'Ries', scores: { grimmigheid: 8, smaak: 6.5, versheid: 6, snelheid: 5, service: 6, hygiene: 2, taal: 7, prijs: 7, temperatuur: 8, verpakking: 6 }, totalScore: 61.5, order: 'Broodje kipdoner', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h4', establishment: 'Texas', expert: 'Hanja', scores: { grimmigheid: 8.5, smaak: 6, versheid: 4, snelheid: 4, service: 6, hygiene: 2, taal: 7, prijs: 6, temperatuur: 8, verpakking: 5 }, totalScore: 56.5, order: 'Turkse pizza kipdoner', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h5', establishment: 'Texas', expert: 'James Bond', scores: { grimmigheid: 9, smaak: 7, versheid: 3, snelheid: 1, service: 5, hygiene: 4, taal: 7, prijs: 6, temperatuur: 8, verpakking: 6 }, totalScore: 56, order: 'Dürüm Döner', dateStr: 'Oud', timestamp: 0 },
+  
+  { id: 'h6', establishment: 'Kabila', expert: 'Tootje', scores: { grimmigheid: 6.5, smaak: 8, versheid: 9, snelheid: 7, service: 8, hygiene: 6, taal: 7, prijs: 7, temperatuur: 9, verpakking: 6 }, totalScore: 73.5, order: 'Broodje shoarma', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h7', establishment: 'Kabila', expert: 'Smart', scores: { grimmigheid: 5.5, smaak: 8, versheid: 8, snelheid: 6, service: 6, hygiene: 4, taal: 5, prijs: 6, temperatuur: 8, verpakking: 7 }, totalScore: 63.5, order: 'Broodje hete kip met knoflooksaus', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h8', establishment: 'Kabila', expert: 'Ries', scores: { grimmigheid: 7, smaak: 9, versheid: 8, snelheid: 6, service: 7.5, hygiene: 6, taal: 6, prijs: 7, temperatuur: 8, verpakking: 7 }, totalScore: 71.5, order: 'Broodje hete kip', dateStr: 'Oud', timestamp: 0 },
+
+  { id: 'h9', establishment: 'Shahba', expert: 'Tootje', scores: { grimmigheid: 9, smaak: 8, versheid: 5, snelheid: 6, service: 5, hygiene: 4, taal: 8, prijs: 7, temperatuur: 8, verpakking: 8 }, totalScore: 68, order: 'Kapsalon met lamsvlees', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h10', establishment: 'Shahba', expert: 'Smart', scores: { grimmigheid: 9, smaak: 7, versheid: 6, snelheid: 6, service: 3, hygiene: 2, taal: 8, prijs: 6, temperatuur: 8, verpakking: 8 }, totalScore: 63, order: 'Durüm döner', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h11', establishment: 'Shahba', expert: 'Ries', scores: { grimmigheid: 9.5, smaak: 8, versheid: 6, snelheid: 5, service: 5, hygiene: 4, taal: 8, prijs: 7, temperatuur: 8, verpakking: 7 }, totalScore: 67.5, order: 'Broodje kalfs döner', dateStr: 'Oud', timestamp: 0 },
+
+  { id: 'h12', establishment: 'Hicret', expert: 'Tootje', scores: { grimmigheid: 5.5, smaak: 8, versheid: 8, snelheid: 8.5, service: 6.5, hygiene: 7, taal: 5.5, prijs: 7, temperatuur: 7, verpakking: 8 }, totalScore: 71, order: 'Turkse pizza kipdöner en borek feta spinazie', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h13', establishment: 'Hicret', expert: 'Smart', scores: { grimmigheid: 4, smaak: 8.5, versheid: 8, snelheid: 9, service: 8, hygiene: 8, taal: 5, prijs: 8, temperatuur: 8, verpakking: 7 }, totalScore: 73.5, order: 'Turkse pizza kipdöner met kaas', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h14', establishment: 'Hicret', expert: 'Ries', scores: { grimmigheid: 5, smaak: 8, versheid: 8, snelheid: 9, service: 7, hygiene: 7, taal: 5, prijs: 8, temperatuur: 7, verpakking: 7 }, totalScore: 71, order: 'Turkes pizza kipdoner', dateStr: 'Oud', timestamp: 0 },
+
+  { id: 'h15', establishment: "Tosti's Corner", expert: 'Tootje', scores: { grimmigheid: 3, smaak: 8, versheid: 8, snelheid: 8, service: 7, hygiene: 8, taal: 5, prijs: 4, temperatuur: 7, verpakking: 6 }, totalScore: 64, order: 'Tosti grillworst kip + chicken strips', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h16', establishment: "Tosti's Corner", expert: 'Smart', scores: { grimmigheid: 3, smaak: 8, versheid: 8, snelheid: 7.5, service: 7, hygiene: 8, taal: 6, prijs: 8, temperatuur: 7.5, verpakking: 6 }, totalScore: 69, order: 'Panini hete kip', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h17', establishment: "Tosti's Corner", expert: 'Ries', scores: { grimmigheid: 2, smaak: 7.5, versheid: 8, snelheid: 9, service: 7, hygiene: 8, taal: 5, prijs: 6.5, temperatuur: 7, verpakking: 6 }, totalScore: 66, order: 'Mexican tosti + chicken strips', dateStr: 'Oud', timestamp: 0 },
+
+  { id: 'h18', establishment: 'Kabila ronde 2', expert: 'Tootje', scores: { grimmigheid: 5, smaak: 9, versheid: 9, snelheid: 7, service: 10, hygiene: 8, taal: 6, prijs: 6, temperatuur: 9, verpakking: 8 }, totalScore: 77, order: 'Kapsalon Kabila (kip en garnaal)', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h19', establishment: 'Kabila ronde 2', expert: 'Smart', scores: { grimmigheid: 3, smaak: 9, versheid: 8, snelheid: 8, service: 9.5, hygiene: 7.5, taal: 5, prijs: 6, temperatuur: 9, verpakking: 7 }, totalScore: 72, order: 'Broodje Kabila', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h20', establishment: 'Kabila ronde 2', expert: 'Ries', scores: { grimmigheid: 4, smaak: 9, versheid: 8, snelheid: 8, service: 9, hygiene: 7, taal: 6, prijs: 6, temperatuur: 8, verpakking: 7 }, totalScore: 72, order: 'Broodje kabila', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h21', establishment: 'Kabila ronde 2', expert: 'Hanja', scores: { grimmigheid: 3, smaak: 8, versheid: 8, snelheid: 7, service: 9.5, hygiene: 7, taal: 6.5, prijs: 6, temperatuur: 8, verpakking: 6.5 }, totalScore: 69.5, order: 'Broodje hete kip', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h22', establishment: 'Kabila ronde 2', expert: 'James Bond', scores: { grimmigheid: 4, smaak: 8.5, versheid: 9, snelheid: 8, service: 10, hygiene: 6.5, taal: 5, prijs: 5, temperatuur: 8, verpakking: 7 }, totalScore: 71, order: 'Broodje hete kip', dateStr: 'Oud', timestamp: 0 },
+
+  { id: 'h23', establishment: 'Hicret ronde 2', expert: 'Tootje', scores: { grimmigheid: 5.5, smaak: 8, versheid: 8, snelheid: 10, service: 7, hygiene: 7, taal: 5, prijs: 7, temperatuur: 7, verpakking: 8 }, totalScore: 72.5, order: 'Turkse pizza kipdoner en kaas', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h24', establishment: 'Hicret ronde 2', expert: 'Smart', scores: { grimmigheid: 4, smaak: 8, versheid: 8, snelheid: 9, service: 7, hygiene: 7.5, taal: 5, prijs: 8, temperatuur: 8, verpakking: 7 }, totalScore: 71.5, order: 'Turkse pizza kaas', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h25', establishment: 'Hicret ronde 2', expert: 'Ries', scores: { grimmigheid: 4, smaak: 8, versheid: 8, snelheid: 9.5, service: 7, hygiene: 7, taal: 6, prijs: 8, temperatuur: 8, verpakking: 6 }, totalScore: 71.5, order: 'Turkse pizza kipdoner en kaas', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h26', establishment: 'Hicret ronde 2', expert: 'Hanja', scores: { grimmigheid: 3, smaak: 8, versheid: 8, snelheid: 9, service: 7, hygiene: 7, taal: 7, prijs: 8, temperatuur: 7, verpakking: 6 }, totalScore: 70, order: 'Turkse pizza kipdoner', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h27', establishment: 'Hicret ronde 2', expert: 'James Bond', scores: { grimmigheid: 7, smaak: 8, versheid: 5, snelheid: 8, service: 7, hygiene: 6, taal: 6, prijs: 9, temperatuur: 8, verpakking: 6 }, totalScore: 70, order: 'Turkse pizza kipdoner', dateStr: 'Oud', timestamp: 0 },
+
+  { id: 'h28', establishment: "Lunchroom 't Laar", expert: 'Tootje', scores: { grimmigheid: 1, smaak: 10, versheid: 8, snelheid: 7, service: 9, hygiene: 8, taal: 2, prijs: 8, temperatuur: 9, verpakking: 8 }, totalScore: 70, order: 'Broodje biefstukpuntjes en een frikandel speciaaal', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h29', establishment: "Lunchroom 't Laar", expert: 'Smart', scores: { grimmigheid: 1, smaak: 9.5, versheid: 9, snelheid: 6, service: 8.5, hygiene: 8, taal: 3, prijs: 7, temperatuur: 9, verpakking: 7 }, totalScore: 68, order: 'Bruin broodje biefstukpuntjes en een mexicano', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h30', establishment: "Lunchroom 't Laar", expert: 'Ries', scores: { grimmigheid: 2, smaak: 9, versheid: 8, snelheid: 7, service: 7.5, hygiene: 8, taal: 2, prijs: 7, temperatuur: 7, verpakking: 9 }, totalScore: 66.5, order: 'Bruin broodje spicy biefstukpuntjes', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h31', establishment: "Lunchroom 't Laar", expert: 'Hanja', scores: { grimmigheid: 1, smaak: 10, versheid: 9, snelheid: 6, service: 7.5, hygiene: 8, taal: 3, prijs: 8, temperatuur: 9, verpakking: 9 }, totalScore: 70.5, order: 'Panini kaas tomaat pesto', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h32', establishment: "Lunchroom 't Laar", expert: 'James Bond', scores: { grimmigheid: 2, smaak: 6.5, versheid: 8, snelheid: 6, service: 9, hygiene: 8, taal: 2, prijs: 8, temperatuur: 8, verpakking: 7 }, totalScore: 64.5, order: 'Panini kip teriyaki ', dateStr: 'Oud', timestamp: 0 },
+
+  { id: 'h33', establishment: 'Tasty Saigon', expert: 'Tootje', scores: { grimmigheid: 2, smaak: 9, versheid: 7, snelheid: 6, service: 8, hygiene: 9, taal: 8, prijs: 3, temperatuur: 10, verpakking: 6 }, totalScore: 68, order: "Garnaal gehakt loempia's en Bahn Mi speciaal", dateStr: 'Oud', timestamp: 0 },
+  { id: 'h34', establishment: 'Tasty Saigon', expert: 'Smart', scores: { grimmigheid: 2, smaak: 8, versheid: 7, snelheid: 6, service: 7, hygiene: 9, taal: 8, prijs: 4, temperatuur: 7, verpakking: 6 }, totalScore: 64, order: 'Loempia Gehakt, Gehakt garnaal en Kip', dateStr: 'Oud', timestamp: 0 },
+  { id: 'h35', establishment: 'Tasty Saigon', expert: 'James Bond', scores: { grimmigheid: 3, smaak: 7, versheid: 7, snelheid: 6, service: 8, hygiene: 8, taal: 7, prijs: 3, temperatuur: 8, verpakking: 7 }, totalScore: 64, order: 'Loempia Gehakt, Gehakt garnaal en Kip', dateStr: 'Oud', timestamp: 0 },
+];
+
 // --- Fetch Functions ---
 
 export const getMenus = async (): Promise<MenuEntry[]> => {
@@ -81,6 +148,19 @@ export const getAdvices = async (): Promise<AdviceEntry[]> => {
   return (data || []).map(mapAdviceFromDB);
 };
 
+export const getAiAdvices = async (): Promise<AiAdviceEntry[]> => {
+  const { data, error } = await supabase
+    .from('ai_advices')
+    .select('*')
+    .order('timestamp', { ascending: false });
+
+  if (error) {
+    console.error("Error fetching AI advices:", error);
+    return [];
+  }
+  return (data || []).map(mapAiAdviceFromDB);
+};
+
 export const getLatestMenu = async (): Promise<MenuEntry | null> => {
   const { data, error } = await supabase
     .from('menus')
@@ -103,6 +183,18 @@ export const getLatestAdvice = async (): Promise<AdviceEntry | null> => {
 
   if (error) return null;
   return data ? mapAdviceFromDB(data) : null;
+};
+
+export const getLatestAiAdvice = async (): Promise<AiAdviceEntry | null> => {
+  const { data, error } = await supabase
+    .from('ai_advices')
+    .select('*')
+    .order('timestamp', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error) return null;
+  return data ? mapAiAdviceFromDB(data) : null;
 };
 
 // Deprecated but kept for type safety if needed elsewhere
@@ -155,6 +247,27 @@ export const getAllDishPhotos = async (): Promise<DishPhotoEntry[]> => {
     return [];
   }
   return (data || []).map(mapPhotoFromDB);
+};
+
+export const getKorvelReviews = async (): Promise<KorvelReviewEntry[]> => {
+  const { data, error } = await supabase
+    .from('korvel_reviews')
+    .select('*')
+    .order('timestamp', { ascending: false });
+
+  let dbReviews: KorvelReviewEntry[] = [];
+  if (!error && data) {
+    dbReviews = data.map(mapKorvelReviewFromDB);
+  }
+
+  // Merge history reviews and DB reviews
+  return [...dbReviews, ...HISTORY_REVIEWS];
+};
+
+export const getUniqueEstablishments = async (): Promise<string[]> => {
+  const reviews = await getKorvelReviews();
+  const names = new Set(reviews.map(r => r.establishment));
+  return Array.from(names).sort();
 };
 
 // --- Save Functions ---
@@ -219,6 +332,26 @@ export const saveAdvice = async (advice: string, photoUrl?: string) => {
   }
 };
 
+export const saveAiAdvice = async (advice: string) => {
+  const { dateStr, formattedDate, timestamp } = getTimestampAndDate();
+
+  const { error } = await supabase
+    .from('ai_advices')
+    .insert([
+      { 
+        date_str: dateStr,
+        formatted_date: formattedDate,
+        advice: advice,
+        timestamp: timestamp
+      }
+    ]);
+
+  if (error) {
+    console.error("Error saving AI advice:", error);
+    throw error;
+  }
+};
+
 export const saveBurritoStatus = async (hasBurritos: boolean) => {
   const { dateStr, formattedDate, timestamp } = getTimestampAndDate();
 
@@ -265,6 +398,37 @@ export const saveDailyStatus = async (
 
   if (error) {
     console.error("Error saving daily status:", error);
+    throw error;
+  }
+};
+
+export const saveKorvelReview = async (
+  establishment: string,
+  expert: string,
+  scores: KorvelReviewEntry['scores'],
+  order: string,
+  photoUrl?: string
+) => {
+  const { dateStr, timestamp } = getTimestampAndDate();
+  const totalScore = Object.values(scores).reduce((a, b) => a + b, 0);
+
+  const { error } = await supabase
+    .from('korvel_reviews')
+    .insert([
+      {
+        establishment,
+        expert,
+        scores,
+        total_score: totalScore,
+        order_details: order,
+        date_str: dateStr,
+        photo_url: photoUrl,
+        timestamp: timestamp
+      }
+    ]);
+
+  if (error) {
+    console.error("Error saving korvel review:", error);
     throw error;
   }
 };
@@ -374,6 +538,13 @@ export const subscribeToAdviceUpdates = (callback: () => void) => {
     .subscribe();
 };
 
+export const subscribeToAiAdviceUpdates = (callback: () => void) => {
+  return supabase
+    .channel('ai_advices_channel')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ai_advices' }, callback)
+    .subscribe();
+};
+
 export const subscribeToBurritoUpdates = (callback: () => void) => {
   return supabase
     .channel('burritos_channel')
@@ -395,9 +566,16 @@ export const subscribeToPhotoUpdates = (callback: () => void) => {
     .subscribe();
 };
 
+export const subscribeToKorvelUpdates = (callback: () => void) => {
+  return supabase
+    .channel('korvel_channel')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'korvel_reviews' }, callback)
+    .subscribe();
+};
+
 // --- Helper ---
 
-export const getUniqueHistory = <T extends MenuEntry | AdviceEntry>(items: T[]): T[] => {
+export const getUniqueHistory = <T extends MenuEntry | AdviceEntry | AiAdviceEntry>(items: T[]): T[] => {
   const map = new Map<string, T>();
   
   // Sort by timestamp ascending, so later entries overwrite earlier ones in the map
