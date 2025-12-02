@@ -5,7 +5,7 @@ import { Layout } from './components/Layout';
 import { MenuEntry, AdviceEntry, AiAdviceEntry, BurritoEntry, DishPhotoEntry, DailyStatusEntry, KorvelReviewEntry } from './types';
 import * as storage from './services/storage';
 import { motion, AnimatePresence, useScroll, useTransform, Variants } from 'framer-motion';
-import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup, Lock, Unlock, Loader2, CheckCircle2, Sandwich, PenTool, Camera, Image as ImageIcon, UploadCloud, X, ToggleLeft, ToggleRight, Star, ShoppingBag, ExternalLink, Store, ChefHat, BarChart3, ChevronDown, Trophy, Medal, Bot } from 'lucide-react';
+import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup, Lock, Unlock, Loader2, CheckCircle2, Sandwich, PenTool, Camera, Image as ImageIcon, UploadCloud, X, ToggleLeft, ToggleRight, Star, ShoppingBag, ExternalLink, Store, ChefHat, BarChart3, ChevronDown, Trophy, Medal, Bot, Info } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
 // --- Shared Components ---
@@ -1207,7 +1207,7 @@ const HomePage = () => {
       const status = dailyStatus;
 
       const prompt = `
-        Je bent een grove, sarcastische maar humoristische AI-assistent voor Job genaamd 'Cyriel 2.0 (AI-adviseur)'.
+        Je bent een grove, grofgebekte, sarcastische maar humoristische AI-assistent voor Job genaamd 'Cyriel 2.0 (AI-adviseur)'.
         Het is vandaag ${dateStr}.
     
         Hier zijn de feiten voor de lunch van vandaag:
@@ -1227,10 +1227,11 @@ const HomePage = () => {
         - Als er Burritos zijn, dit is altijd wel een veilige keuze als er niks anders lekkers is (deze zijn heel lekker en zelf gemaakt door Job).
         - Prins Heerlijk is vaak 'de veilige keuze'. In het advies behandel je de opties die op het menu staan.
         - Wees besluitvaardig. Kies één winnaar.
+        - Als het visdag is, staat er een viskraam op 5 minuten lopen. Job haalt hier meestal een portie kibbeling of een visloempia. 
         - Als er lekker vreten op kantoor is, is dit een optie maar alleen als er echt geen andere goede opties zijn. Het is gratis, maar het zullen dan simpele tosti's worden.
-        - Gebruik grove humor als dat past. Het is belangrijk om te weten dat Prins Heerlijk een restaurant is waar mensen met een verstandelijke of lichamelijke beperking werken, maak hier grappen over, hou jezelf niet in.
-        - Bengels is lekker, maar heeft een vast menu en is dus altijd hetzelfde. Dit is een goed alternatief als de opties bij Prins Heerlijk niet goed zijn.
-        - Als Korvelseweg een optie is, kies je hier bijna altijd voor. De Korvel is echt een volksbuurt met veel kebabzaken en fastfood, het is een beetje traditie om dit op vrijdag te halen.
+        - Gebruik grove humor. Het is belangrijk om te weten dat Prins Heerlijk een restaurant is waar mensen met een verstandelijke of lichamelijke beperking werken, maak hier grappen over, hou jezelf niet in.
+        - Bengels is lekker, maar heeft een vast menu en is dus altijd hetzelfde (en dus een beetje saai). Dit is een goed alternatief als de opties bij Prins Heerlijk niet goed zijn.
+        - Als Korvelseweg een optie is, kies je hier bijna altijd voor. De Korvel is echt een volksbuurt met veel kebabzaken en fastfood, er loopt hier veel multicultureel, ordinair en asociaal volk rond. Het is een beetje traditie om dit op vrijdag te halen.
         - Maximaal 5 zinnen.
       `;
 
@@ -1560,6 +1561,10 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' | 'other' | 'korvel' }) =
     bengels: null, lekkerVreten: null, korvel: null, visdag: null, burritos: null
   });
 
+  // Context State for Advice Input
+  const [contextMenu, setContextMenu] = useState<MenuEntry | null>(null);
+  const [contextStatus, setContextStatus] = useState<DailyStatusEntry | null>(null);
+
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
@@ -1634,6 +1639,13 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' | 'other' | 'korvel' }) =
            } else {
              setIsNewDay(true);
            }
+           
+           // Load Context for Cyriel
+           const menu = await storage.getLatestMenu();
+           setContextMenu(menu);
+           
+           const status = await storage.getLatestDailyStatus();
+           setContextStatus(status);
         } else if (isOther) {
            const latestStatus = await storage.getLatestDailyStatus();
            if (latestStatus && latestStatus.dateStr === currentValDateStr) {
@@ -1881,56 +1893,95 @@ Prijs: € ${menuData.priceSoup}`;
               )}
 
               {isAdvice && (
-                <ScrollReveal delay={0.2}>
-                  <div className="space-y-4">
-                    <div className="relative">
-                      <textarea value={adviceContent} onChange={(e) => setAdviceContent(e.target.value)} required rows={8} placeholder="Wat is het wijs advies van de dag?" className="w-full p-4 rounded-xl border border-stone-200 bg-stone-50 focus:bg-white focus:border-orange-500 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all outline-none resize-none font-medium text-stone-700 placeholder:text-stone-400 shadow-inner" />
-                    </div>
+                <div className="space-y-6">
+                  {/* Context Block for Cyriel */}
+                  <div className="bg-orange-50/50 p-4 rounded-xl border border-orange-100 text-sm space-y-4">
+                     <h3 className="font-serif font-bold text-stone-700 flex items-center gap-2">
+                       <Info size={16}/> Context voor Vandaag
+                     </h3>
+                     
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Menu Context */}
+                        <div className="bg-white p-3 rounded-lg border border-orange-100 shadow-sm">
+                           <h4 className="font-bold text-orange-800 mb-2 border-b border-orange-50 pb-1">Prins Heerlijk Menu</h4>
+                           {contextMenu && contextMenu.dateStr === new Date().toLocaleString("en-US", {timeZone: "Europe/Amsterdam"}).split('T')[0] && contextMenu.formattedDate === new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) ? (
+                              <div className="whitespace-pre-wrap text-stone-600 text-xs leading-relaxed">
+                                {contextMenu.items}
+                              </div>
+                           ) : (
+                              <p className="text-stone-400 italic text-xs">Nog geen menu ingevoerd voor vandaag.</p>
+                           )}
+                        </div>
 
-                    {/* Photo Upload for Advice */}
-                    <div className="bg-stone-50 p-4 rounded-xl border border-stone-100">
-                      <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-3">Foto toevoegen (Optioneel)</label>
-                      {!advicePhotoPreview ? (
-                        <div className="grid grid-cols-2 gap-4">
-                          <button 
-                            type="button"
-                            onClick={() => adviceCameraInputRef.current?.click()}
-                            className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-orange-200 rounded-xl bg-orange-50/50 hover:bg-orange-50 hover:border-orange-400 transition-colors gap-2 text-orange-700 group"
-                          >
-                            <div className="p-2 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
-                              <Camera size={20} />
-                            </div>
-                            <span className="font-semibold text-xs">Camera</span>
-                          </button>
-                          <button 
-                            type="button"
-                            onClick={() => adviceFileInputRef.current?.click()}
-                            className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-stone-200 rounded-xl bg-stone-50/50 hover:bg-stone-50 hover:border-stone-400 transition-colors gap-2 text-stone-600 group"
-                          >
-                            <div className="p-2 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
-                              <ImageIcon size={20} />
-                            </div>
-                            <span className="font-semibold text-xs">Galerij</span>
-                          </button>
+                        {/* Status Context */}
+                        <div className="bg-white p-3 rounded-lg border border-orange-100 shadow-sm">
+                           <h4 className="font-bold text-orange-800 mb-2 border-b border-orange-50 pb-1">Overige Opties</h4>
+                           {contextStatus && contextStatus.formattedDate === new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) ? (
+                              <ul className="space-y-1 text-xs text-stone-600">
+                                 <li className="flex justify-between"><span>Bengels:</span> <strong className={contextStatus.bengels ? 'text-green-600' : 'text-red-500'}>{contextStatus.bengels ? 'JA' : 'NEE'}</strong></li>
+                                 <li className="flex justify-between"><span>Lekker Vreten:</span> <strong className={contextStatus.lekkerVreten ? 'text-green-600' : 'text-red-500'}>{contextStatus.lekkerVreten ? 'JA' : 'NEE'}</strong></li>
+                                 <li className="flex justify-between"><span>Korvel:</span> <strong className={contextStatus.korvel ? 'text-green-600' : 'text-red-500'}>{contextStatus.korvel ? 'JA' : 'NEE'}</strong></li>
+                                 <li className="flex justify-between"><span>Visdag:</span> <strong className={contextStatus.visdag ? 'text-green-600' : 'text-red-500'}>{contextStatus.visdag ? 'JA' : 'NEE'}</strong></li>
+                                 <li className="flex justify-between"><span>Burritos:</span> <strong className={contextStatus.burritos ? 'text-green-600' : 'text-red-500'}>{contextStatus.burritos ? 'JA' : 'NEE'}</strong></li>
+                              </ul>
+                           ) : (
+                              <p className="text-stone-400 italic text-xs">Nog geen statussen ingevoerd voor vandaag.</p>
+                           )}
                         </div>
-                      ) : (
-                        <div className="relative rounded-xl overflow-hidden border border-stone-200 shadow-sm group w-full h-48">
-                          <img src={advicePhotoPreview} alt="Preview" className="w-full h-full object-cover" />
-                          <button 
-                            type="button" 
-                            onClick={() => { setAdvicePhoto(null); setAdvicePhotoPreview(null); }}
-                            className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                      )}
-                      {/* Hidden Inputs */}
-                      <input type="file" accept="image/*" capture="environment" ref={adviceCameraInputRef} className="hidden" onChange={handleAdvicePhotoChange} />
-                      <input type="file" accept="image/*" ref={adviceFileInputRef} className="hidden" onChange={handleAdvicePhotoChange} />
-                    </div>
+                     </div>
                   </div>
-                </ScrollReveal>
+
+                  <ScrollReveal delay={0.2}>
+                    <div className="space-y-4">
+                      <div className="relative">
+                        <textarea value={adviceContent} onChange={(e) => setAdviceContent(e.target.value)} required rows={8} placeholder="Wat is het wijs advies van de dag?" className="w-full p-4 rounded-xl border border-stone-200 bg-stone-50 focus:bg-white focus:border-orange-500 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 transition-all outline-none resize-none font-medium text-stone-700 placeholder:text-stone-400 shadow-inner" />
+                      </div>
+
+                      {/* Photo Upload for Advice */}
+                      <div className="bg-stone-50 p-4 rounded-xl border border-stone-100">
+                        <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-3">Foto toevoegen (Optioneel)</label>
+                        {!advicePhotoPreview ? (
+                          <div className="grid grid-cols-2 gap-4">
+                            <button 
+                              type="button"
+                              onClick={() => adviceCameraInputRef.current?.click()}
+                              className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-orange-200 rounded-xl bg-orange-50/50 hover:bg-orange-50 hover:border-orange-400 transition-colors gap-2 text-orange-700 group"
+                            >
+                              <div className="p-2 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
+                                <Camera size={20} />
+                              </div>
+                              <span className="font-semibold text-xs">Camera</span>
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={() => adviceFileInputRef.current?.click()}
+                              className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-stone-200 rounded-xl bg-stone-50/50 hover:bg-stone-50 hover:border-stone-400 transition-colors gap-2 text-stone-600 group"
+                            >
+                              <div className="p-2 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
+                                <ImageIcon size={20} />
+                              </div>
+                              <span className="font-semibold text-xs">Galerij</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="relative rounded-xl overflow-hidden border border-stone-200 shadow-sm group w-full h-48">
+                            <img src={advicePhotoPreview} alt="Preview" className="w-full h-full object-cover" />
+                            <button 
+                              type="button" 
+                              onClick={() => { setAdvicePhoto(null); setAdvicePhotoPreview(null); }}
+                              className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        )}
+                        {/* Hidden Inputs */}
+                        <input type="file" accept="image/*" capture="environment" ref={adviceCameraInputRef} className="hidden" onChange={handleAdvicePhotoChange} />
+                        <input type="file" accept="image/*" ref={adviceFileInputRef} className="hidden" onChange={handleAdvicePhotoChange} />
+                      </div>
+                    </div>
+                  </ScrollReveal>
+                </div>
               )}
 
               {isOther && (
