@@ -1,6 +1,6 @@
 
 import { supabase } from './supabase';
-import { MenuEntry, AdviceEntry, AiAdviceEntry, BurritoEntry, DishPhotoEntry, DailyStatusEntry, KorvelReviewEntry } from '../types';
+import { MenuEntry, AdviceEntry, AiAdviceEntry, MartAdviceEntry, BurritoEntry, DishPhotoEntry, DailyStatusEntry, KorvelReviewEntry } from '../types';
 
 // --- Mappers ---
 // Map database snake_case to TypeScript camelCase
@@ -23,6 +23,14 @@ const mapAdviceFromDB = (data: any): AdviceEntry => ({
 });
 
 const mapAiAdviceFromDB = (data: any): AiAdviceEntry => ({
+  id: data.id,
+  dateStr: data.date_str,
+  formattedDate: data.formatted_date,
+  advice: data.advice,
+  timestamp: data.timestamp
+});
+
+const mapMartAdviceFromDB = (data: any): MartAdviceEntry => ({
   id: data.id,
   dateStr: data.date_str,
   formattedDate: data.formatted_date,
@@ -161,6 +169,19 @@ export const getAiAdvices = async (): Promise<AiAdviceEntry[]> => {
   return (data || []).map(mapAiAdviceFromDB);
 };
 
+export const getMartAdvices = async (): Promise<MartAdviceEntry[]> => {
+  const { data, error } = await supabase
+    .from('mart_advices')
+    .select('*')
+    .order('timestamp', { ascending: false });
+
+  if (error) {
+    console.error("Error fetching Mart advices:", error);
+    return [];
+  }
+  return (data || []).map(mapMartAdviceFromDB);
+};
+
 export const getLatestMenu = async (): Promise<MenuEntry | null> => {
   const { data, error } = await supabase
     .from('menus')
@@ -195,6 +216,18 @@ export const getLatestAiAdvice = async (): Promise<AiAdviceEntry | null> => {
 
   if (error) return null;
   return data ? mapAiAdviceFromDB(data) : null;
+};
+
+export const getLatestMartAdvice = async (): Promise<MartAdviceEntry | null> => {
+  const { data, error } = await supabase
+    .from('mart_advices')
+    .select('*')
+    .order('timestamp', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error) return null;
+  return data ? mapMartAdviceFromDB(data) : null;
 };
 
 // Deprecated but kept for type safety if needed elsewhere
@@ -348,6 +381,26 @@ export const saveAiAdvice = async (advice: string) => {
 
   if (error) {
     console.error("Error saving AI advice:", error);
+    throw error;
+  }
+};
+
+export const saveMartAdvice = async (advice: string) => {
+  const { dateStr, formattedDate, timestamp } = getTimestampAndDate();
+
+  const { error } = await supabase
+    .from('mart_advices')
+    .insert([
+      { 
+        date_str: dateStr,
+        formatted_date: formattedDate,
+        advice: advice,
+        timestamp: timestamp
+      }
+    ]);
+
+  if (error) {
+    console.error("Error saving Mart advice:", error);
     throw error;
   }
 };
@@ -545,6 +598,13 @@ export const subscribeToAiAdviceUpdates = (callback: () => void) => {
     .subscribe();
 };
 
+export const subscribeToMartAdviceUpdates = (callback: () => void) => {
+  return supabase
+    .channel('mart_advices_channel')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mart_advices' }, callback)
+    .subscribe();
+};
+
 export const subscribeToBurritoUpdates = (callback: () => void) => {
   return supabase
     .channel('burritos_channel')
@@ -575,7 +635,7 @@ export const subscribeToKorvelUpdates = (callback: () => void) => {
 
 // --- Helper ---
 
-export const getUniqueHistory = <T extends MenuEntry | AdviceEntry | AiAdviceEntry>(items: T[]): T[] => {
+export const getUniqueHistory = <T extends MenuEntry | AdviceEntry | AiAdviceEntry | MartAdviceEntry>(items: T[]): T[] => {
   const map = new Map<string, T>();
   
   // Sort by timestamp ascending, so later entries overwrite earlier ones in the map

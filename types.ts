@@ -24,6 +24,14 @@ export interface AiAdviceEntry {
   timestamp: number;
 }
 
+export interface MartAdviceEntry {
+  id: string;
+  dateStr: string;
+  formattedDate: string;
+  advice: string;
+  timestamp: number;
+}
+
 export interface BurritoEntry {
   id: string;
   dateStr: string;
@@ -78,4 +86,4 @@ export interface KorvelReviewEntry {
   timestamp: number;
 }
 
-export type EntryType = 'menu' | 'advice' | 'ai_advice' | 'burritos' | 'other' | 'korvel';
+export type EntryType = 'menu' | 'advice' | 'ai_advice' | 'mart_advice' | 'burritos' | 'other' | 'korvel';

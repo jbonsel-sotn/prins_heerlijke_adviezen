@@ -29,8 +29,18 @@ create table if not exists advices (
 -- UPDATE: Voeg foto kolom toe aan adviezen tabel (als je dit later toevoegt)
 alter table advices add column if not exists photo_url text;
 
--- Tabel voor AI Adviezen aanmaken (NIEUW)
+-- Tabel voor AI Adviezen aanmaken (Sjonnie)
 create table if not exists ai_advices (
+  id uuid default gen_random_uuid() primary key,
+  date_str text not null,
+  formatted_date text not null,
+  advice text not null,
+  timestamp bigint not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Tabel voor Mart Adviezen aanmaken (NIEUW)
+create table if not exists mart_advices (
   id uuid default gen_random_uuid() primary key,
   date_str text not null,
   formatted_date text not null,
@@ -109,6 +119,9 @@ begin
   end if;
   if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'ai_advices') then
     alter publication supabase_realtime add table ai_advices;
+  end if;
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'mart_advices') then
+    alter publication supabase_realtime add table mart_advices;
   end if;
   if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'burritos') then
     alter publication supabase_realtime add table burritos;

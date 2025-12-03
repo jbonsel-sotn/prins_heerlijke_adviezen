@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Utensils, ChefHat, History, Home, Coffee, ChevronDown, PenTool, Menu, X, ToggleLeft, ShoppingBag, Store, Trophy, List, Bot } from 'lucide-react';
+import { Utensils, ChefHat, History, Home, Coffee, ChevronDown, PenTool, Menu, X, ToggleLeft, ShoppingBag, Store, Trophy, List, Bot, Truck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Desktop Components ---
@@ -202,7 +203,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                 items={[
                   { label: "Prins Heerlijk Menu", to: "/history/menu", icon: Utensils },
                   { label: "Cyriel's Adviezen", to: "/history/advice", icon: Coffee },
-                  { label: "AI Adviezen", to: "/history/ai", icon: Bot },
+                  { label: "AI Adviezen (Sjonnie)", to: "/history/ai", icon: Bot },
+                  { label: "Mart Adviezen (AI)", to: "/history/mart", icon: Truck },
                 ]}
               />
             </div>
@@ -264,7 +266,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               <MobileSection title="Historie">
                 <MobileNavLink to="/history/menu" icon={History} onClick={() => setIsMobileMenuOpen(false)}>Menu Historie</MobileNavLink>
                 <MobileNavLink to="/history/advice" icon={History} onClick={() => setIsMobileMenuOpen(false)}>Advies Historie</MobileNavLink>
-                <MobileNavLink to="/history/ai" icon={Bot} onClick={() => setIsMobileMenuOpen(false)}>AI Adviezen</MobileNavLink>
+                <MobileNavLink to="/history/ai" icon={Bot} onClick={() => setIsMobileMenuOpen(false)}>AI Adviezen (Sjonnie)</MobileNavLink>
+                <MobileNavLink to="/history/mart" icon={Truck} onClick={() => setIsMobileMenuOpen(false)}>Mart Adviezen (AI)</MobileNavLink>
               </MobileSection>
             </div>
 

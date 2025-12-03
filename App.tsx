@@ -1,11 +1,12 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
-import { MenuEntry, AdviceEntry, AiAdviceEntry, BurritoEntry, DishPhotoEntry, DailyStatusEntry, KorvelReviewEntry } from './types';
+import { MenuEntry, AdviceEntry, AiAdviceEntry, MartAdviceEntry, BurritoEntry, DishPhotoEntry, DailyStatusEntry, KorvelReviewEntry } from './types';
 import * as storage from './services/storage';
 import { motion, AnimatePresence, useScroll, useTransform, Variants } from 'framer-motion';
-import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup, Lock, Unlock, Loader2, CheckCircle2, Sandwich, PenTool, Camera, Image as ImageIcon, UploadCloud, X, ToggleLeft, ToggleRight, Star, ShoppingBag, ExternalLink, Store, ChefHat, BarChart3, ChevronDown, Trophy, Medal, Bot, Info } from 'lucide-react';
+import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup, Lock, Unlock, Loader2, CheckCircle2, Sandwich, PenTool, Camera, Image as ImageIcon, UploadCloud, X, ToggleLeft, ToggleRight, Star, ShoppingBag, ExternalLink, Store, ChefHat, BarChart3, ChevronDown, Trophy, Medal, Bot, Info, Truck } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
 // --- Shared Components ---
@@ -1132,11 +1133,13 @@ const HomePage = () => {
   const [menu, setMenu] = useState<MenuEntry | null>(null);
   const [advice, setAdvice] = useState<AdviceEntry | null>(null);
   const [aiAdvice, setAiAdvice] = useState<AiAdviceEntry | null>(null);
+  const [martAdvice, setMartAdvice] = useState<MartAdviceEntry | null>(null);
   const [dailyStatus, setDailyStatus] = useState<DailyStatusEntry | null>(null);
   const [loading, setLoading] = useState(true);
   
   // AI Generation State
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [isGeneratingMart, setIsGeneratingMart] = useState(false);
   
   // Photo Upload State
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
@@ -1148,16 +1151,18 @@ const HomePage = () => {
   const today = new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   const loadData = async () => {
-    const [latestMenu, latestAdvice, latestDailyStatus, latestAiAdvice] = await Promise.all([
+    const [latestMenu, latestAdvice, latestDailyStatus, latestAiAdvice, latestMartAdvice] = await Promise.all([
       storage.getLatestMenu(),
       storage.getLatestAdvice(),
       storage.getLatestDailyStatus(),
-      storage.getLatestAiAdvice()
+      storage.getLatestAiAdvice(),
+      storage.getLatestMartAdvice()
     ]);
     setMenu(latestMenu);
     setAdvice(latestAdvice);
     setDailyStatus(latestDailyStatus);
     setAiAdvice(latestAiAdvice);
+    setMartAdvice(latestMartAdvice);
     setLoading(false);
   };
 
@@ -1167,11 +1172,13 @@ const HomePage = () => {
     const adviceSub = storage.subscribeToAdviceUpdates(loadData);
     const dailyStatusSub = storage.subscribeToDailyStatusUpdates(loadData);
     const aiAdviceSub = storage.subscribeToAiAdviceUpdates(loadData);
+    const martAdviceSub = storage.subscribeToMartAdviceUpdates(loadData);
     return () => { 
       menuSub.unsubscribe(); 
       adviceSub.unsubscribe(); 
       dailyStatusSub.unsubscribe(); 
       aiAdviceSub.unsubscribe();
+      martAdviceSub.unsubscribe();
     };
   }, []);
 
@@ -1195,7 +1202,7 @@ const HomePage = () => {
     });
   };
 
-  // Helper to generate AI advice
+  // Helper to generate Sjonnie (AI) advice
   const generateAiAdvice = async () => {
     if (!menu || !dailyStatus) return;
     
@@ -1207,7 +1214,7 @@ const HomePage = () => {
       const status = dailyStatus;
 
       const prompt = `
-        Je bent een grove, grofgebekte, sarcastische maar humoristische AI-assistent voor Job genaamd 'Cyriel 2.0 (AI-adviseur)'.
+        Je bent een grove, grofgebekte, sarcastische maar humoristische AI-assistent voor Job genaamd 'Sjonnie de AI-adviseur'.
         Het is vandaag ${dateStr}.
     
         Hier zijn de feiten voor de lunch van vandaag:
@@ -1240,7 +1247,7 @@ const HomePage = () => {
         contents: prompt,
       });
 
-      const adviceText = response.text || "De robot heeft even geen inspiratie, probeer het later nog eens.";
+      const adviceText = response.text || "Sjonnie heeft even geen inspiratie, probeer het later nog eens.";
       await storage.saveAiAdvice(adviceText);
       await loadData();
       
@@ -1249,6 +1256,71 @@ const HomePage = () => {
       alert("Er ging iets mis bij het genereren van het advies.");
     } finally {
       setIsGeneratingAi(false);
+    }
+  };
+
+  // Helper to generate Mart 2.0 (AI) advice
+  const generateMartAdvice = async () => {
+    if (!menu || !dailyStatus) return;
+    
+    setIsGeneratingMart(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const dateStr = menu.formattedDate;
+      const menuItems = menu.items;
+      const status = dailyStatus;
+
+      const prompt = `
+        Je bent een AI-assistent genaamd 'Mart 2.0 (AI-adviseur)'.
+        Je persona is gebaseerd op Mart, een typische Brabantse varkensboer.
+        Je bent tevens eigenaar van een bedrijf in koelwagens verhuur om dranken en etenswaren koel en vers te houden voor feesten en evenementen).
+        
+        Jouw karakteristieken:
+        - Je praat met een heel plat Brabants accent (gebruik woorden als 'gij', 'jehh', 'neuh', 'd'n', 'houdoe', 'hedde', 'jonguh', 'wa' etc.).
+        - Je bent NIET grofgebekt zoals Sjonnie, maar wel direct, eerlijk en boers.
+        - Je betrekt af en toe subtiel je bedrijf  of je varkens in het advies (met humor!).
+        - Je houdt ervan om een pilske te vatten.
+
+        Het is vandaag ${dateStr}.
+    
+        Hier zijn de feiten voor de lunch van vandaag:
+        
+        1. Menu van 'Prins Heerlijk' (De standaard optie):
+        ${menuItems}
+    
+        2. Overige statussen:
+        - Heeft Job burritos meegenomen?: ${status.burritos ? 'JA' : 'NEE'}
+        - Is het Visdag (staat de viskraam er)?: ${status.visdag ? 'JA' : 'NEE'}
+        - Is Bengels een optie?: ${status.bengels ? 'JA' : 'NEE'}
+        - Is er lekker vreten op kantoor?: ${status.lekkerVreten ? 'JA' : 'NEE'}
+        - Zijn de etablisementen aan de Korvelseweg een optie?: ${status.korvel ? 'JA' : 'NEE'}
+    
+        Opdracht:
+        Schrijf een kort advies voor Job over wat hij moet gaan eten.
+        - Als er Burritos zijn, dit is altijd wel een veilige keuze als er niks anders lekkers is (deze zijn heel lekker en zelf gemaakt door Job).
+        - Prins Heerlijk is vaak 'de veilige keuze'. In het advies behandel je de opties die op het menu staan.
+        - Wees besluitvaardig. Kies één winnaar.
+        - Als het visdag is, staat er een viskraam op 5 minuten lopen. Job haalt hier meestal een portie kibbeling of een visloempia. 
+        - Als er lekker vreten op kantoor is, is dit een optie maar alleen als er echt geen andere goede opties zijn. Het is gratis, maar het zullen dan simpele tosti's worden.
+        - Bengels is lekker, maar heeft een vast menu en is dus altijd hetzelfde (en dus een beetje saai). Dit is een goed alternatief als de opties bij Prins Heerlijk niet goed zijn.
+        - Als Korvelseweg een optie is, kies je hier bijna altijd voor. De Korvel is echt een volksbuurt met veel kebabzaken en fastfood, er loopt hier veel multicultureel, ordinair en asociaal volk rond. Het is een beetje traditie om dit op vrijdag te halen.
+        - Maximaal 5 zinnen.
+      `;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+      });
+
+      const adviceText = response.text || "Mart is effe de varkens voeren, probeer het later nog es.";
+      await storage.saveMartAdvice(adviceText);
+      await loadData();
+      
+    } catch (error) {
+      console.error("Mart Generation Error", error);
+      alert("Er ging iets mis bij het genereren van het advies.");
+    } finally {
+      setIsGeneratingMart(false);
     }
   };
 
@@ -1471,9 +1543,9 @@ const HomePage = () => {
             </Card>
             </ScrollReveal>
 
-            {/* AI Advice Card */}
+            {/* Sjonnie (AI) Advice Card */}
             <ScrollReveal delay={0.5}>
-              <Card title="Cyriel 2.0 (AI-adviseur)" icon={Bot} type="default" className="bg-gradient-to-br from-white to-blue-50/50 border-blue-100">
+              <Card title="Sjonnie de AI-adviseur" icon={Bot} type="default" className="bg-gradient-to-br from-white to-blue-50/50 border-blue-100">
                 {loading ? (
                   <LoadingSpinner />
                 ) : (aiAdvice && aiAdvice.formattedDate === today) ? (
@@ -1484,7 +1556,7 @@ const HomePage = () => {
                     </p>
                     <div className="mt-8 flex justify-end items-center gap-3">
                       <div className="text-right">
-                        <p className="font-bold text-stone-800 text-base">- Cyriel 2.0</p>
+                        <p className="font-bold text-stone-800 text-base">- Sjonnie</p>
                         <p className="text-xs text-stone-400">{new Date(aiAdvice.timestamp).toLocaleDateString('nl-NL')}</p>
                       </div>
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-200 to-cyan-200 flex items-center justify-center text-blue-900 font-bold shrink-0 shadow-lg border border-white">
@@ -1494,7 +1566,7 @@ const HomePage = () => {
                   </div>
                 ) : canGenerateAi ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
-                    <p className="text-stone-500 font-medium">Alle gegevens zijn bekend. Cyriel 2.0 staat klaar.</p>
+                    <p className="text-stone-500 font-medium">Alle gegevens zijn bekend. Sjonnie staat klaar.</p>
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
@@ -1503,13 +1575,58 @@ const HomePage = () => {
                       className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full font-bold shadow-lg hover:shadow-blue-500/30 transition-all flex items-center gap-2 disabled:opacity-70"
                     >
                       {isGeneratingAi ? <Loader2 className="animate-spin" /> : <Bot />}
-                      {isGeneratingAi ? "Aan het denken..." : "Genereer Cyriel 2.0 Advies"}
+                      {isGeneratingAi ? "Aan het denken..." : "Genereer Sjonnie's Advies"}
                     </motion.button>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-stone-400 text-center">
                      <Bot size={48} className="mb-4 opacity-30" />
-                     <p className="text-lg font-serif italic">Cyriel 2.0 slaapt.</p>
+                     <p className="text-lg font-serif italic">Sjonnie slaapt.</p>
+                     <p className="text-sm">Vul eerst het menu en alle statussen in.</p>
+                  </div>
+                )}
+              </Card>
+            </ScrollReveal>
+
+             {/* Mart 2.0 (AI) Advice Card */}
+             <ScrollReveal delay={0.6}>
+              <Card title="Mart 2.0 (AI-adviseur)" icon={Truck} type="default" className="bg-gradient-to-br from-white to-emerald-50/50 border-emerald-100">
+                {loading ? (
+                  <LoadingSpinner />
+                ) : (martAdvice && martAdvice.formattedDate === today) ? (
+                  <div className="relative flex flex-col">
+                    <div className="text-8xl absolute -top-6 -left-4 text-emerald-200 font-serif opacity-40 select-none">"</div>
+                    <p className="whitespace-pre-wrap text-lg md:text-xl text-stone-700 italic pl-8 md:pl-10 pr-4 relative z-10 font-serif leading-loose flex-grow">
+                      {martAdvice.advice}
+                    </p>
+                    <div className="mt-8 flex justify-end items-center gap-3">
+                      <div className="text-right">
+                        <p className="font-bold text-stone-800 text-base">- Mart 2.0</p>
+                        <p className="text-xs text-stone-400">{new Date(martAdvice.timestamp).toLocaleDateString('nl-NL')}</p>
+                      </div>
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-200 to-green-200 flex items-center justify-center text-emerald-900 font-bold shrink-0 shadow-lg border border-white">
+                         <Truck size={24} />
+                      </div>
+                    </div>
+                  </div>
+                ) : canGenerateAi ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
+                    <p className="text-stone-500 font-medium">De koelwagen is geladen. Mart staat klaar.</p>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={generateMartAdvice}
+                      disabled={isGeneratingMart}
+                      className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-full font-bold shadow-lg hover:shadow-emerald-500/30 transition-all flex items-center gap-2 disabled:opacity-70"
+                    >
+                      {isGeneratingMart ? <Loader2 className="animate-spin" /> : <Truck />}
+                      {isGeneratingMart ? "Mart is bezig..." : "Vraag het aan Mart"}
+                    </motion.button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-stone-400 text-center">
+                     <Truck size={48} className="mb-4 opacity-30" />
+                     <p className="text-lg font-serif italic">Mart is de varkens aan het voeren.</p>
                      <p className="text-sm">Vul eerst het menu en alle statussen in.</p>
                   </div>
                 )}
@@ -1568,6 +1685,18 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' | 'other' | 'korvel' }) =
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
+  // Helper function to get consistent today date string
+  const getTodayDateStr = () => {
+    const now = new Date();
+    const todayNL = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Amsterdam"}));
+    const yyyy = todayNL.getFullYear();
+    const mm = String(todayNL.getMonth() + 1).padStart(2, '0');
+    const dd = String(todayNL.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const todayDateStr = getTodayDateStr();
+
   useEffect(() => {
     if (isAdvice) {
       setIsLocked(true);
@@ -1591,12 +1720,7 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' | 'other' | 'korvel' }) =
 
       setIsLoadingData(true);
       try {
-        const todayNL = new Date().toLocaleString("en-US", {timeZone: "Europe/Amsterdam"});
-        const todayDate = new Date(todayNL);
-        const yyyy = todayDate.getFullYear();
-        const mm = String(todayDate.getMonth() + 1).padStart(2, '0');
-        const dd = String(todayDate.getDate()).padStart(2, '0');
-        const currentValDateStr = `${yyyy}-${mm}-${dd}`;
+        const currentValDateStr = todayDateStr;
 
         if (isMenu) {
           const latestMenu = await storage.getLatestMenu();
@@ -1672,7 +1796,7 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' | 'other' | 'korvel' }) =
     };
 
     loadCurrentData();
-  }, [isMenu, isAdvice, isOther, isLocked]);
+  }, [isMenu, isAdvice, isOther, isLocked, todayDateStr]);
 
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1904,7 +2028,7 @@ Prijs: € ${menuData.priceSoup}`;
                         {/* Menu Context */}
                         <div className="bg-white p-3 rounded-lg border border-orange-100 shadow-sm">
                            <h4 className="font-bold text-orange-800 mb-2 border-b border-orange-50 pb-1">Prins Heerlijk Menu</h4>
-                           {contextMenu && contextMenu.dateStr === new Date().toLocaleString("en-US", {timeZone: "Europe/Amsterdam"}).split('T')[0] && contextMenu.formattedDate === new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) ? (
+                           {contextMenu && contextMenu.dateStr === todayDateStr ? (
                               <div className="whitespace-pre-wrap text-stone-600 text-xs leading-relaxed">
                                 {contextMenu.items}
                               </div>
@@ -1916,7 +2040,7 @@ Prijs: € ${menuData.priceSoup}`;
                         {/* Status Context */}
                         <div className="bg-white p-3 rounded-lg border border-orange-100 shadow-sm">
                            <h4 className="font-bold text-orange-800 mb-2 border-b border-orange-50 pb-1">Overige Opties</h4>
-                           {contextStatus && contextStatus.formattedDate === new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) ? (
+                           {contextStatus && contextStatus.dateStr === todayDateStr ? (
                               <ul className="space-y-1 text-xs text-stone-600">
                                  <li className="flex justify-between"><span>Bengels:</span> <strong className={contextStatus.bengels ? 'text-green-600' : 'text-red-500'}>{contextStatus.bengels ? 'JA' : 'NEE'}</strong></li>
                                  <li className="flex justify-between"><span>Lekker Vreten:</span> <strong className={contextStatus.lekkerVreten ? 'text-green-600' : 'text-red-500'}>{contextStatus.lekkerVreten ? 'JA' : 'NEE'}</strong></li>
@@ -2208,13 +2332,16 @@ const HistoryItem = ({ item, photos, onPhotoClick }: { item: any, photos: DishPh
   );
 }
 
-const HistoryPage = ({ type }: { type: 'menu' | 'advice' | 'ai_advice' }) => {
+const HistoryPage = ({ type }: { type: 'menu' | 'advice' | 'ai_advice' | 'mart_advice' }) => {
   const [items, setItems] = useState<any[]>([]);
   const [allPhotos, setAllPhotos] = useState<DishPhotoEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPhoto, setSelectedPhoto] = useState<DishPhotoEntry | null>(null);
   
-  const title = type === 'menu' ? "Historie: Menu's" : type === 'advice' ? "Historie: Adviezen" : "Historie: AI Adviezen";
+  const title = type === 'menu' ? "Historie: Menu's" 
+              : type === 'advice' ? "Historie: Adviezen" 
+              : type === 'ai_advice' ? "Historie: Sjonnie"
+              : "Historie: Mart 2.0";
   
   useEffect(() => {
     const fetchHistory = async () => {
@@ -2234,6 +2361,9 @@ const HistoryPage = ({ type }: { type: 'menu' | 'advice' | 'ai_advice' }) => {
         } else if (type === 'ai_advice') {
            const rawAiAdvice = await storage.getAiAdvices();
            setItems(storage.getUniqueHistory(rawAiAdvice));
+        } else if (type === 'mart_advice') {
+           const rawMartAdvice = await storage.getMartAdvices();
+           setItems(storage.getUniqueHistory(rawMartAdvice));
         }
       } catch (e) { console.error(e); } finally { setLoading(false); }
     };
@@ -2247,7 +2377,9 @@ const HistoryPage = ({ type }: { type: 'menu' | 'advice' | 'ai_advice' }) => {
       <div className="space-y-8 pb-12">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 1.0 }} className="flex items-center gap-4 mb-6 md:mb-8">
           <motion.div whileHover={{ rotate: 360 }} transition={{ duration: 1 }} className="p-3 bg-white rounded-full shadow-md text-orange-600">
-            {type === 'ai_advice' ? <Bot size={24} className="md:w-8 md:h-8" /> : <History size={24} className="md:w-8 md:h-8" />}
+            {type === 'ai_advice' ? <Bot size={24} className="md:w-8 md:h-8" /> : 
+             type === 'mart_advice' ? <Truck size={24} className="md:w-8 md:h-8" /> :
+             <History size={24} className="md:w-8 md:h-8" />}
           </motion.div>
           <h1 className="text-2xl md:text-3xl font-serif font-bold text-stone-800 leading-tight">{title}</h1>
         </motion.div>
@@ -2291,6 +2423,7 @@ export default function App() {
           <Route path="/history/menu" element={<HistoryPage type="menu" />} />
           <Route path="/history/advice" element={<HistoryPage type="advice" />} />
           <Route path="/history/ai" element={<HistoryPage type="ai_advice" />} />
+          <Route path="/history/mart" element={<HistoryPage type="mart_advice" />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>
