@@ -1,4 +1,5 @@
 
+
 import { supabase } from './supabase';
 import { MenuEntry, AdviceEntry, AiAdviceEntry, MartAdviceEntry, BurritoEntry, DishPhotoEntry, DailyStatusEntry, KorvelReviewEntry } from '../types';
 
@@ -55,6 +56,7 @@ const mapDailyStatusFromDB = (data: any): DailyStatusEntry => ({
   korvel: data.korvel,
   visdag: data.visdag,
   burritos: data.burritos,
+  comments: data.comments,
   timestamp: data.timestamp
 });
 
@@ -430,7 +432,8 @@ export const saveDailyStatus = async (
   lekkerVreten: boolean | null, 
   korvel: boolean | null,
   visdag: boolean | null,
-  burritos: boolean | null
+  burritos: boolean | null,
+  comments: string = ""
 ) => {
   const { dateStr, formattedDate, timestamp } = getTimestampAndDate();
 
@@ -445,6 +448,7 @@ export const saveDailyStatus = async (
         korvel: korvel,
         visdag: visdag,
         burritos: burritos,
+        comments: comments,
         timestamp: timestamp
       }
     ]);

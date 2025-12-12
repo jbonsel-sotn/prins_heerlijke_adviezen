@@ -1,4 +1,5 @@
 
+
 -- INSTRUCTIES VOOR DATABASE (SQL EDITOR):
 -- 1. Ga naar je Supabase Dashboard
 -- 2. Klik links op 'SQL Editor' (icoon >_)
@@ -74,6 +75,8 @@ create table if not exists daily_status (
 -- UPDATE: Nieuwe kolommen voor Visdag en Burritos in daily_status
 alter table daily_status add column if not exists visdag boolean;
 alter table daily_status add column if not exists burritos boolean;
+-- UPDATE: Nieuwe kolom voor opmerkingen
+alter table daily_status add column if not exists comments text;
 
 
 -- Tabel voor Foto's van Gerechten aanmaken

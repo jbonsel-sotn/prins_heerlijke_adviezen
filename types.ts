@@ -49,6 +49,7 @@ export interface DailyStatusEntry {
   korvel: boolean | null;
   visdag: boolean | null;    // Nieuw
   burritos: boolean | null;  // Nieuw (verplaatst van eigen tabel naar hier)
+  comments?: string;         // Nieuw: Overige opmerkingen
   timestamp: number;
 }
 

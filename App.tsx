@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
@@ -6,7 +7,7 @@ import { Layout } from './components/Layout';
 import { MenuEntry, AdviceEntry, AiAdviceEntry, MartAdviceEntry, BurritoEntry, DishPhotoEntry, DailyStatusEntry, KorvelReviewEntry } from './types';
 import * as storage from './services/storage';
 import { motion, AnimatePresence, useScroll, useTransform, Variants } from 'framer-motion';
-import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup, Lock, Unlock, Loader2, CheckCircle2, Sandwich, PenTool, Camera, Image as ImageIcon, UploadCloud, X, ToggleLeft, ToggleRight, Star, ShoppingBag, ExternalLink, Store, ChefHat, BarChart3, ChevronDown, Trophy, Medal, Bot, Info, Truck } from 'lucide-react';
+import { Utensils, Coffee, Save, Calendar, Clock, Sparkles, History, Euro, Soup, Lock, Unlock, Loader2, CheckCircle2, Sandwich, PenTool, Camera, Image as ImageIcon, UploadCloud, X, ToggleLeft, ToggleRight, Star, ShoppingBag, ExternalLink, Store, ChefHat, BarChart3, ChevronDown, Trophy, Medal, Bot, Info, Truck, MessageSquare } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
 // --- Shared Components ---
@@ -157,36 +158,56 @@ const StatusDots = ({ status }: { status: DailyStatusEntry | null }) => {
   ];
 
   return (
-    <div className="flex flex-col md:grid md:grid-cols-5 gap-3 md:gap-4 w-full">
-      {items.map((item, idx) => (
-        <motion.div 
-          key={idx}
-          whileHover={{ y: -5 }}
-          className="bg-white/90 backdrop-blur rounded-xl md:rounded-2xl p-4 flex flex-row md:flex-col items-center justify-between gap-4 shadow-lg border border-orange-50/50 relative overflow-hidden h-auto md:h-full"
-        >
-          <span className="text-sm font-bold text-stone-700 text-left md:text-center font-serif leading-tight z-10 flex-1 md:flex-none">{item.label}</span>
-          <div className="relative z-10 shrink-0 md:mb-2">
-             {/* Pulsating Ring (Outer Glow) */}
-             {(isCurrent && (item.value === true || item.value === false)) && (
-               <motion.div 
-                 animate={{ scale: [1, 1.5], opacity: [0, 0.6, 0] }}
-                 transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                 className={`absolute inset-0 rounded-full ${item.value ? 'bg-emerald-400' : 'bg-red-500'}`}
-               />
-             )}
-             
-             {/* Main Dot */}
-             <div
-               className={`w-8 h-8 md:w-10 md:h-10 rounded-full border-2 transition-all duration-300 flex items-center justify-center text-[10px] md:text-xs font-bold text-white relative z-10 ${getDotColorClass(item.value)}`}
-             >
-                {/* Inner shine - only visible if colored */}
-                {(isCurrent && (item.value === true || item.value === false)) && (
-                  <div className="absolute top-1 left-2 w-2 h-1 bg-white/40 rounded-full blur-[1px]"></div>
-                )}
-             </div>
-          </div>
-        </motion.div>
-      ))}
+    <div className="w-full space-y-4">
+      <div className="flex flex-col md:grid md:grid-cols-5 gap-3 md:gap-4 w-full">
+        {items.map((item, idx) => (
+          <motion.div 
+            key={idx}
+            whileHover={{ y: -5 }}
+            className="bg-white/90 backdrop-blur rounded-xl md:rounded-2xl p-4 flex flex-row md:flex-col items-center justify-between gap-4 shadow-lg border border-orange-50/50 relative overflow-hidden h-auto md:h-full"
+          >
+            <span className="text-sm font-bold text-stone-700 text-left md:text-center font-serif leading-tight z-10 flex-1 md:flex-none">{item.label}</span>
+            <div className="relative z-10 shrink-0 md:mb-2">
+               {/* Pulsating Ring (Outer Glow) */}
+               {(isCurrent && (item.value === true || item.value === false)) && (
+                 <motion.div 
+                   animate={{ scale: [1, 1.5], opacity: [0, 0.6, 0] }}
+                   transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                   className={`absolute inset-0 rounded-full ${item.value ? 'bg-emerald-400' : 'bg-red-500'}`}
+                 />
+               )}
+               
+               {/* Main Dot */}
+               <div
+                 className={`w-8 h-8 md:w-10 md:h-10 rounded-full border-2 transition-all duration-300 flex items-center justify-center text-[10px] md:text-xs font-bold text-white relative z-10 ${getDotColorClass(item.value)}`}
+               >
+                  {/* Inner shine - only visible if colored */}
+                  {(isCurrent && (item.value === true || item.value === false)) && (
+                    <div className="absolute top-1 left-2 w-2 h-1 bg-white/40 rounded-full blur-[1px]"></div>
+                  )}
+               </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+      
+      {/* Comments Section */}
+      {isCurrent && status?.comments && (
+         <motion.div 
+           initial={{ opacity: 0, y: 10 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ delay: 0.2 }}
+           className="w-full bg-white/90 backdrop-blur rounded-2xl p-4 md:p-5 flex items-start gap-4 shadow-sm border border-orange-100"
+         >
+           <div className="p-2.5 bg-orange-100 rounded-xl text-orange-600 shrink-0 mt-0.5">
+             <MessageSquare size={20} />
+           </div>
+           <div>
+              <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-1.5">Overige Opmerking</h4>
+              <p className="text-stone-800 font-serif italic leading-relaxed">"{status.comments}"</p>
+           </div>
+         </motion.div>
+      )}
     </div>
   );
 };
@@ -1228,6 +1249,7 @@ const HomePage = () => {
         - Is Bengels een optie?: ${status.bengels ? 'JA' : 'NEE'}
         - Is er lekker vreten op kantoor?: ${status.lekkerVreten ? 'JA' : 'NEE'}
         - Zijn de etablisementen aan de Korvelseweg een optie?: ${status.korvel ? 'JA' : 'NEE'}
+        - Overige opmerkingen: ${status.comments || 'Geen'}
     
         Opdracht:
         Schrijf een kort, grappig en grof advies voor Job over wat hij moet gaan vreten.
@@ -1236,10 +1258,11 @@ const HomePage = () => {
         - Wees besluitvaardig. Kies één winnaar.
         - Als het visdag is, staat er een viskraam op 5 minuten lopen. Job haalt hier meestal een portie kibbeling of een visloempia. 
         - Als er lekker vreten op kantoor is, is dit een optie maar alleen als er echt geen andere goede opties zijn. Het is gratis, maar het zullen dan simpele tosti's worden.
-        - Gebruik grove humor. Het is belangrijk om te weten dat Prins Heerlijk een restaurant is waar mensen met een verstandelijke of lichamelijke beperking werken, maak hier grappen over, hou jezelf niet in.
         - Bengels is lekker, maar heeft een vast menu en is dus altijd hetzelfde (en dus een beetje saai). Dit is een goed alternatief als de opties bij Prins Heerlijk niet goed zijn.
         - Als Korvelseweg een optie is, kies je hier bijna altijd voor. De Korvel is echt een volksbuurt met veel kebabzaken en fastfood, er loopt hier veel multicultureel, ordinair en asociaal volk rond. Het is een beetje traditie om dit op vrijdag te halen.
-        - Maximaal 5 zinnen.
+        - Neem eventuele 'Overige opmerkingen' mee in je afweging als deze relevant zijn.
+        - Maximaal 6 zinnen.
+        - Gebruik grove humor. Het is belangrijk om te weten dat Prins Heerlijk een restaurant is waar mensen met een verstandelijke beperking werken, maak hier grappen over, hou jezelf niet in.
       `;
 
       const response = await ai.models.generateContent({
@@ -1294,6 +1317,7 @@ const HomePage = () => {
         - Is Bengels een optie?: ${status.bengels ? 'JA' : 'NEE'}
         - Is er lekker vreten op kantoor?: ${status.lekkerVreten ? 'JA' : 'NEE'}
         - Zijn de etablisementen aan de Korvelseweg een optie?: ${status.korvel ? 'JA' : 'NEE'}
+        - Overige opmerkingen: ${status.comments || 'Geen'}
     
         Opdracht:
         Schrijf een kort advies voor Job over wat hij moet gaan eten.
@@ -1304,7 +1328,10 @@ const HomePage = () => {
         - Als er lekker vreten op kantoor is, is dit een optie maar alleen als er echt geen andere goede opties zijn. Het is gratis, maar het zullen dan simpele tosti's worden.
         - Bengels is lekker, maar heeft een vast menu en is dus altijd hetzelfde (en dus een beetje saai). Dit is een goed alternatief als de opties bij Prins Heerlijk niet goed zijn.
         - Als Korvelseweg een optie is, kies je hier bijna altijd voor. De Korvel is echt een volksbuurt met veel kebabzaken en fastfood, er loopt hier veel multicultureel, ordinair en asociaal volk rond. Het is een beetje traditie om dit op vrijdag te halen.
-        - Maximaal 5 zinnen.
+        - Neem eventuele 'Overige opmerkingen' mee in je afweging als deze relevant zijn.
+        - BELANGRIJK: Verzin er altijd een specifiek bijpassend biertje bij (Merk + Soort), die goed samen gaat met het gerecht. Zeg erbij dat je die koud hebt staan in de koelwagen.
+        - BELANGRIJK: Verwerk elke keer een unieke 'boeren spreuk' of gezegde in je tekst. Dit mag een bestaand spreekwoord zijn of eentje die klinkt als boerenwijsheid.
+        - Maximaal 6 zinnen.
       `;
 
       const response = await ai.models.generateContent({
@@ -1673,9 +1700,10 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' | 'other' | 'korvel' }) =
     lekkerVreten: boolean | null, 
     korvel: boolean | null,
     visdag: boolean | null,
-    burritos: boolean | null
+    burritos: boolean | null,
+    comments: string
   }>({
-    bengels: null, lekkerVreten: null, korvel: null, visdag: null, burritos: null
+    bengels: null, lekkerVreten: null, korvel: null, visdag: null, burritos: null, comments: ''
   });
 
   // Context State for Advice Input
@@ -1709,7 +1737,7 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' | 'other' | 'korvel' }) =
     setAdviceContent('');
     setAdvicePhoto(null);
     setAdvicePhotoPreview(null);
-    setDailyStatus({ bengels: null, lekkerVreten: null, korvel: null, visdag: null, burritos: null });
+    setDailyStatus({ bengels: null, lekkerVreten: null, korvel: null, visdag: null, burritos: null, comments: '' });
     setDataLoaded(false);
     setIsNewDay(false);
   }, [type]);
@@ -1778,14 +1806,15 @@ const InputPage = ({ type }: { type: 'menu' | 'advice' | 'other' | 'korvel' }) =
                 lekkerVreten: latestStatus.lekkerVreten,
                 korvel: latestStatus.korvel,
                 visdag: latestStatus.visdag,
-                burritos: latestStatus.burritos
+                burritos: latestStatus.burritos,
+                comments: latestStatus.comments || ''
              });
              setDataLoaded(true);
              setIsNewDay(false);
            } else {
              setIsNewDay(true);
              // Ensure defaults are null
-             setDailyStatus({ bengels: null, lekkerVreten: null, korvel: null, visdag: null, burritos: null });
+             setDailyStatus({ bengels: null, lekkerVreten: null, korvel: null, visdag: null, burritos: null, comments: '' });
            }
         }
       } catch (e) {
@@ -1855,7 +1884,8 @@ Prijs: € ${menuData.priceSoup}`;
           dailyStatus.lekkerVreten, 
           dailyStatus.korvel,
           dailyStatus.visdag,
-          dailyStatus.burritos
+          dailyStatus.burritos,
+          dailyStatus.comments
         );
       }
       setIsSaved(true);
@@ -2041,13 +2071,21 @@ Prijs: € ${menuData.priceSoup}`;
                         <div className="bg-white p-3 rounded-lg border border-orange-100 shadow-sm">
                            <h4 className="font-bold text-orange-800 mb-2 border-b border-orange-50 pb-1">Overige Opties</h4>
                            {contextStatus && contextStatus.dateStr === todayDateStr ? (
-                              <ul className="space-y-1 text-xs text-stone-600">
-                                 <li className="flex justify-between"><span>Bengels:</span> <strong className={contextStatus.bengels ? 'text-green-600' : 'text-red-500'}>{contextStatus.bengels ? 'JA' : 'NEE'}</strong></li>
-                                 <li className="flex justify-between"><span>Lekker Vreten:</span> <strong className={contextStatus.lekkerVreten ? 'text-green-600' : 'text-red-500'}>{contextStatus.lekkerVreten ? 'JA' : 'NEE'}</strong></li>
-                                 <li className="flex justify-between"><span>Korvel:</span> <strong className={contextStatus.korvel ? 'text-green-600' : 'text-red-500'}>{contextStatus.korvel ? 'JA' : 'NEE'}</strong></li>
-                                 <li className="flex justify-between"><span>Visdag:</span> <strong className={contextStatus.visdag ? 'text-green-600' : 'text-red-500'}>{contextStatus.visdag ? 'JA' : 'NEE'}</strong></li>
-                                 <li className="flex justify-between"><span>Burritos:</span> <strong className={contextStatus.burritos ? 'text-green-600' : 'text-red-500'}>{contextStatus.burritos ? 'JA' : 'NEE'}</strong></li>
-                              </ul>
+                              <div className="space-y-2">
+                                <ul className="space-y-1 text-xs text-stone-600">
+                                   <li className="flex justify-between"><span>Bengels:</span> <strong className={contextStatus.bengels ? 'text-green-600' : 'text-red-500'}>{contextStatus.bengels ? 'JA' : 'NEE'}</strong></li>
+                                   <li className="flex justify-between"><span>Lekker Vreten:</span> <strong className={contextStatus.lekkerVreten ? 'text-green-600' : 'text-red-500'}>{contextStatus.lekkerVreten ? 'JA' : 'NEE'}</strong></li>
+                                   <li className="flex justify-between"><span>Korvel:</span> <strong className={contextStatus.korvel ? 'text-green-600' : 'text-red-500'}>{contextStatus.korvel ? 'JA' : 'NEE'}</strong></li>
+                                   <li className="flex justify-between"><span>Visdag:</span> <strong className={contextStatus.visdag ? 'text-green-600' : 'text-red-500'}>{contextStatus.visdag ? 'JA' : 'NEE'}</strong></li>
+                                   <li className="flex justify-between"><span>Burritos:</span> <strong className={contextStatus.burritos ? 'text-green-600' : 'text-red-500'}>{contextStatus.burritos ? 'JA' : 'NEE'}</strong></li>
+                                </ul>
+                                {contextStatus.comments && (
+                                  <div className="pt-2 border-t border-orange-50">
+                                    <span className="text-xs font-bold text-stone-500">Opmerking:</span>
+                                    <p className="text-xs text-stone-700 italic mt-0.5">"{contextStatus.comments}"</p>
+                                  </div>
+                                )}
+                              </div>
                            ) : (
                               <p className="text-stone-400 italic text-xs">Nog geen statussen ingevoerd voor vandaag.</p>
                            )}
@@ -2136,6 +2174,24 @@ Prijs: € ${menuData.priceSoup}`;
                         value={dailyStatus.burritos} 
                         onChange={(val) => setDailyStatus(prev => ({...prev, burritos: val}))} 
                      />
+                     
+                     {/* New Comments Field */}
+                     <motion.div 
+                        initial={{ opacity: 0, y: 10 }} 
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-stone-50 p-4 rounded-xl border border-stone-100 space-y-2"
+                     >
+                       <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider flex items-center gap-2">
+                         <MessageSquare size={14} /> Overige Opmerkingen (Optioneel)
+                       </label>
+                       <textarea
+                         value={dailyStatus.comments}
+                         onChange={(e) => setDailyStatus(prev => ({...prev, comments: e.target.value}))}
+                         placeholder="Bijv. McDonald's is ook een optie vandaag, of de kantine is dicht..."
+                         rows={3}
+                         className="w-full p-3 rounded-lg border border-stone-200 focus:border-orange-500 outline-none transition-all resize-none text-sm bg-white focus:ring-4 focus:ring-orange-100/50"
+                       />
+                     </motion.div>
                   </div>
                 </ScrollReveal>
               )}
